@@ -20,7 +20,8 @@ KEY = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS',
                      '/mnt/project/sondreskarsten-d7d14-8486be2d085b.json')
 PROJECT = 'sondreskarsten-d7d14'
 PROJECT_NUMBER = '331757836174'
-REGION = 'europe-north1'
+REGION = 'europe-north1'  # job lives here
+SCHEDULER_REGION = 'europe-west1'  # Cloud Scheduler unavailable in europe-north1
 JOB_NAME = 'brreg-json-fetcher'
 SCHEDULER_NAME = f'{JOB_NAME}-daily'
 SA = f's1sfreracct@{PROJECT}.iam.gserviceaccount.com'
@@ -56,7 +57,7 @@ def configure(cron=DEFAULT_CRON, tz=DEFAULT_TZ):
         },
     }
 
-    base = f'https://cloudscheduler.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/jobs'
+    base = f'https://cloudscheduler.googleapis.com/v1/projects/{PROJECT}/locations/{SCHEDULER_REGION}/jobs'
 
     r = requests.get(f'{base}/{SCHEDULER_NAME}', headers=auth)
     if r.status_code == 200:
@@ -66,7 +67,7 @@ def configure(cron=DEFAULT_CRON, tz=DEFAULT_TZ):
                             headers=auth, json=sched_spec)
     else:
         print(f'Creating schedule {SCHEDULER_NAME}: {cron} {tz}')
-        sched_spec['name'] = f'projects/{PROJECT}/locations/{REGION}/jobs/{SCHEDULER_NAME}'
+        sched_spec['name'] = f'projects/{PROJECT}/locations/{SCHEDULER_REGION}/jobs/{SCHEDULER_NAME}'
         r = requests.post(base, headers=auth, json=sched_spec)
 
     print(f'  status: {r.status_code}')
