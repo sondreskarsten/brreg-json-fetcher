@@ -5,8 +5,11 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     aiohttp \
     google-cloud-storage \
-    google-auth
+    google-auth \
+    pyarrow
 
 COPY runner.py /app/runner.py
+COPY parser.py /app/parser.py
 
-ENTRYPOINT ["python", "/app/runner.py"]
+ENTRYPOINT ["python"]
+CMD ["/app/runner.py"]

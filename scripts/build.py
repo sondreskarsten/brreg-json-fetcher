@@ -34,6 +34,7 @@ def build():
     with tarfile.open(fileobj=buf, mode='w:gz') as tar:
         tar.add(os.path.join(REPO_ROOT, 'Dockerfile'), arcname='Dockerfile')
         tar.add(os.path.join(REPO_ROOT, 'runner.py'), arcname='runner.py')
+        tar.add(os.path.join(REPO_ROOT, 'parser.py'), arcname='parser.py')
 
     buf.seek(0)
     context_bucket = f'{PROJECT}_cloudbuild'
