@@ -37,7 +37,7 @@ def unsupported_plan(status, message):
 class Client:
     def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.4.0"})
+        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.4.1"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep

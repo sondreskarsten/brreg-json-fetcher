@@ -1,5 +1,11 @@
 # brreg-json-fetcher
 
+**Unofficial data mirror maintained by [sondreskarsten](https://github.com/sondreskarsten). Not operated, approved or endorsed by Brønnøysundregistrene.**
+
+> Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
+
+Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0). This mirror filters, samples monthly, converts JSON to CSV and adds provenance. Read [the verified licence scope, changes and Norwegian legal references](DATA_LICENSE.md), including the distinction between source data and software.
+
 Collect a fresh monthly snapshot of Norwegian AS/ASA annual accounts and publish it as a GitHub release. Collection can span multiple runner sessions and multiple days.
 
 ## Monthly seed
@@ -82,6 +88,7 @@ Exit code `2` means account errors remain; `1` means a source/configuration/expo
 | `accounts.csv` | One row per returned regnskap (filing); up to six rows per organisation |
 | `observations.csv` | One row per eligible organisation: lookup status, actual observation time, response hash and error body |
 | `checkpoint.sqlite3.gz` | Resumable queue, frozen seed, historical filings, observations and exact response bytes |
+| `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
 | `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
 
 CSV uses UTF-8, comma separators, a header, and standard quoting for commas, double quotes and embedded newlines. Account fields are flattened into dotted columns (for example `eiendeler.sumEiendeler`). Columns are discovered from every filing, including newly introduced fields. Missing fields are blank. `_meta.orgnr`, `_meta.fiscal_year` and `_meta.snapshot_date` identify the organisation, fiscal year and seed date. `regnskapstype` distinguishes SELSKAP and KONSERN; `id` and `journalnr` are preserved. `_meta.filing_json` preserves the complete filing, including the distinction between absent and null fields. Empty objects and arrays are JSON text.

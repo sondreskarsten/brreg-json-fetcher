@@ -54,6 +54,12 @@ def test_empty_export_and_no_mixed_runs(state, tmp_path):
     out = tmp_path / "release"
     manifest = export_release(state, out)
     assert manifest["complete"] is False
+    assert manifest["provenance"]["licence"] == "NLOD-2.0"
+    assert manifest["provenance"]["official"] is False
+    notice = (out / "DATA_NOTICE.md").read_text()
+    assert "Brønnøysundregistrene" in notice
+    assert "https://data.norge.no/nlod/no/2.0" in notice
+    assert manifest["assets"]["DATA_NOTICE.md"]["sha256"] == sha256_file(out / "DATA_NOTICE.md")
     with (out / "accounts.csv").open(newline="") as stream:
         assert list(csv.DictReader(stream)) == []
     with pytest.raises(SourceError, match="empty"):
