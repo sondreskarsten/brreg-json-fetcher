@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from . import __version__
+from .attribution import NOTICE, data_provenance
 from .client import SourceError, unsupported_plan
 from .state import SCHEMA_VERSION, canonical
 
@@ -247,10 +248,12 @@ def export_release(
             raise SourceError("Entity download does not match this month's seed checksum")
         shutil.copyfile(snapshot_path, destination / "enheter.json.gz")
 
+    (destination / "DATA_NOTICE.md").write_text(NOTICE, encoding="utf-8")
     report = json.loads(state.get("last_run", "{}"))
     manifest = {
         "format_version": 1,
         "software_version": __version__,
+        "provenance": data_provenance(),
         "created_at": datetime.now(UTC).isoformat(),
         "complete": bool(state.get("cycle_completed_at"))
         and state.summary()["queued_entities"] == 0,

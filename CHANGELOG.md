@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Document verified NLOD 2.0 source-data licensing and Norwegian legal context.
+- Identify the repository and data releases as an unofficial mirror.
+- Include attribution, source links and transformation notices in release notes, manifests and checksummed notice assets.
+
 ## 0.4.0
 
 - Publish CSV with one row per returned filing, including all SELSKAP/KONSERN years.

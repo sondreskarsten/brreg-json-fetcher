@@ -74,7 +74,7 @@ def test_minimal_checkpoint_and_seed_round_trip(state, tmp_path):
         state, out, checkpoint_only=True, snapshot_path=snapshot, max_asset_bytes=512
     )
     assert manifest["kind"] == "checkpoint" and manifest["cycle"] == "2026-10"
-    assert set(manifest["assets"]) == {"checkpoint.sqlite3.gz", "enheter.json.gz"}
+    assert set(manifest["assets"]) == {"checkpoint.sqlite3.gz", "enheter.json.gz", "DATA_NOTICE.md"}
     restored_path = tmp_path / "restored.sqlite3"
     restore_checkpoint(out, restored_path)
     restored = State(restored_path)

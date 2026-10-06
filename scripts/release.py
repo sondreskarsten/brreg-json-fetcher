@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from brreg_fetcher.attribution import ATTRIBUTION, LICENCE_URL, REPOSITORY
 from brreg_fetcher.export import restore_asset, restore_checkpoint, sha256_file
 from brreg_fetcher.state import State
 
@@ -137,7 +138,12 @@ def publish(repo, directory, tag, target):
         )
     notes = directory.parent / "release-notes.md"
     notes.write_text(
-        f"BRREG {'recovery checkpoint' if checkpoint else 'monthly data'}: {cycle}.\n\n"
+        f"Unofficial BRREG {'recovery checkpoint' if checkpoint else 'monthly data'}: {cycle}.\n\n"
+        f"{ATTRIBUTION} [NLOD 2.0]({LICENCE_URL}).\n\n"
+        "Independent mirror by sondreskarsten; not operated or endorsed by Brønnøysundregistrene. "
+        "Monthly selection and CSV conversion are changes made by this mirror. "
+        f"[Sources, licence scope and changes]({REPOSITORY}/blob/main/DATA_LICENSE.md). "
+        "See DATA_NOTICE.md and manifest.json in the assets.\n\n"
         f"Seed download date: {manifest['entities_date']}. "
         f"Collection window: {manifest.get('collection_started_at')} to "
         f"{manifest.get('collection_finished_at') or 'still running'}.\n\n"
