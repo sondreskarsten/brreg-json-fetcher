@@ -1,0 +1,53 @@
+name: Monthly data collection
+on:
+  schedule:
+    # Monthly start; later wake-ups resume the frozen queue or recover publication.
+    - cron: '17 4 1 * *'
+    - cron: '17 4 2-31 * *'
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: Allow the first monthly seed if no published checkpoint exists
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: brreg-data-release
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      - name: Inspect latest monthly release or restore unfinished work
+        id: resume
+        env:
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          args=()
+          if [ "$BOOTSTRAP" = true ] || [ "$EVENT_NAME" = schedule ]; then args+=(--bootstrap); fi
+          uv run python scripts/release.py resume --directory data/previous "${args[@]}"
+          rm -rf data/previous
+      - name: Collect up to three one-hour segments and checkpoint each segment
+        if: steps.resume.outputs.needs_run == 'true'
+        run: uv run python -m scripts.monthly_run --segments 3 --seconds 3600 --workers 4
+      - name: Preserve files from any interrupted publication
+        if: failure() && steps.resume.outputs.needs_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: brreg-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/monthly/
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 30

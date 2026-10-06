@@ -1,0 +1,39 @@
+name: Live BRREG API sample
+on:
+  workflow_dispatch:
+  push:
+    tags: ['api-check-*']
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      - name: Download Enhetsregisteret and fetch five AS plus five ASA
+        run: uv run python scripts/live_smoke.py --per-form 5
+      - name: Save returned data and filtered seed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brreg-live-sample-${{ github.run_id }}
+          path: data/live/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Save downloaded Enhetsregisteret copy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhetsregisteret-download-${{ github.run_id }}
+          path: data/enheter.json.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
