@@ -30,7 +30,7 @@ The scheduler has a monthly-start trigger on the first day and continuation trig
 
 If October's batch is still running in November, it keeps October's seed and finishes/publishes October first. A subsequent run downloads the current month's seed. Missed historical months cannot be reconstructed from today's register/API; the collector does not manufacture backdated snapshots.
 
-Enable scheduled runs with the repository variable `BRREG_DATA_ENABLED=true` after the workflow is on the default branch. For the first manual run, select `bootstrap: true`; later manual runs resume existing state. The built-in `GITHUB_TOKEN` needs `contents: write`. Runs are serialised to protect the queue.
+Scheduled collection and daily continuation runs are enabled when the workflow is on the default branch. For the first manual run, select `bootstrap: true`; later manual runs resume existing state. The built-in `GITHUB_TOKEN` needs `contents: write`. Runs are serialised to protect the queue.
 
 ### Recovery and completion
 
