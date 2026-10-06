@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Publish CSV with one row per returned filing, including all SELSKAP/KONSERN years.
+- Export lookup coverage and errors in a separate CSV, keeping raw history in the checkpoint.
+- Discover all source columns and split large CSV files only at record boundaries.
+- Remove the Parquet dependency.
+
 ## 0.3.0
 
 - Replace announcement and API-load change detection with a fresh full AS/ASA seed each collection month.

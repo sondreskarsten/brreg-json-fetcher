@@ -79,19 +79,18 @@ Exit code `2` means account errors remain; `1` means a source/configuration/expo
 | Asset | Contents |
 | --- | --- |
 | `enheter.json.gz` | Original full source download used for this month's seed |
-| `seed.jsonl.gz` | Frozen eligible AS/ASA seed: orgnr, latest filing year, legal form |
-| `accounts.jsonl.gz`, `accounts.parquet` | Successful filings observed in this collection month, with metadata and complete filing JSON |
-| `filings-history.jsonl.gz` | Previously observed filing IDs, each with its most recently observed content |
-| `responses.jsonl.gz` | Exact distinct response bodies as base64, keyed by SHA-256, including prior revisions and errors |
-| `entities.jsonl.gz` | Entity-register eligibility and legal forms |
-| `observations.jsonl.gz` | HTTP outcomes, times, cycle identifiers, response hashes, and filing-change counts |
-| `work.jsonl.gz` | Remaining work and error messages (empty at successful completion) |
-| `checkpoint.sqlite3.gz` | Complete resumable state |
-| `manifest.json`, `SHA256SUMS` | Cycle, source provenance, completion, coverage counts, and checksums |
+| `accounts.csv` | One row per returned regnskap (filing); up to six rows per organisation |
+| `observations.csv` | One row per eligible organisation: lookup status, actual observation time, response hash and error body |
+| `checkpoint.sqlite3.gz` | Resumable queue, frozen seed, historical filings, observations and exact response bytes |
+| `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
 
-At the start of a new month, the current filing view is cleared and rebuilt from that month's responses; older successes cannot masquerade as new observations. Historical filings and exact responses remain preserved. The internal observation field `generation` identifies the `YYYY-MM` cycle; older migrated observations may contain their original identifier.
+CSV uses UTF-8, comma separators, a header, and standard quoting for commas, double quotes and embedded newlines. Account fields are flattened into dotted columns (for example `eiendeler.sumEiendeler`). Columns are discovered from every filing, including newly introduced fields. Missing fields are blank. `_meta.orgnr`, `_meta.fiscal_year` and `_meta.snapshot_date` identify the organisation, fiscal year and seed date. `regnskapstype` distinguishes SELSKAP and KONSERN; `id` and `journalnr` are preserved. `_meta.filing_json` preserves the complete filing, including the distinction between absent and null fields. Empty objects and arrays are JSON text.
 
-Assets exceeding 1 GiB use ordered `.partNNNN` files to stay below GitHub's 2 GiB per-asset limit. The manifest lists part order and full-file checksums. Published monthly releases are immutable; incomplete uploads stay drafts until the full asset set is verified.
+An organisation returning three years of SELSKAP and three years of KONSERN produces six account rows. A 404 or unsupported plan produces no account row; its outcome remains in `observations.csv`. A valid empty array also produces no account rows, with a successful observation. Pending rows occur only in incomplete local exports. The monthly seed date is not the actual lookup date: observation timestamps describe when the data was fetched during the multi-day collection.
+
+At each new month, the current filing view is cleared and rebuilt. Exports use only this cycle's observations; older successes cannot masquerade as new observations. Historical filings and exact response bytes remain in the checkpoint.
+
+CSV files exceeding 1 GiB split at record boundaries into `accounts-00001.csv`, etc., each with its own header and checksum. Each file can be read independently; no CSV record is cut in half. Other oversized assets use ordered `.partNNNN` files with assembled checksums. An individual CSV record exceeding the limit fails export. Published releases are immutable; incomplete uploads stay drafts until the full asset set is verified.
 
 Version-matching `v*` tags build a wheel/source **software release draft**, separately from monthly data releases.
 
@@ -168,7 +167,7 @@ resultatregnskapResultat: {
 
 Source spellings such as `regnkapsprinsipper` and `sumInnskuttEgenkaptial` are preserved. `regnskapsregler` may be `regnskapslovenAlminneligRegler`, `forenkletAnvendelseIFRS`, or `IFRS`. Amounts are JSON numbers in full units of `valuta`. An absent leaf is not zero; parent objects can be empty.
 
-The supplied research identifies the five additional asset leaves, the three tax/extraordinary-result leaves, `salgsinntekter`, `loennskostnad`, `annenRentekostnad`, and `rentekostnadSammeKonsern` as additions on 1 October 2026, including retroactive additions to existing filings. The JSON exports retain all fields, including future additions. Parquet discovers the union of field paths across all records before writing, and also includes the full filing in `_meta.filing_json`. Missing and explicit null leaves both become null in flattened columns; the JSON representation preserves the distinction. Mixed-type columns use strings when needed, with exact source values retained in JSON.
+The supplied research identifies the five additional asset leaves, the three tax/extraordinary-result leaves, `salgsinntekter`, `loennskostnad`, `annenRentekostnad`, and `rentekostnadSammeKonsern` as additions on 1 October 2026, including retroactive additions to existing filings. CSV discovers the union of field paths across all current filings before writing and includes complete filing JSON in `_meta.filing_json`. Missing and explicit null leaves are blank in flattened columns; the JSON representation preserves the distinction.
 
 The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year(tilDato))`. The **filing identity** is its `id`. A new ID for the same logical key is a resubmission. `journalnr` can be shared by SELSKAP and KONSERN and is not a unique filing key. The collector also hashes content: a changed response with the same ID is recorded as a content revision, not a resubmission.
 

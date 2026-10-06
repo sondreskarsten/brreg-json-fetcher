@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "brreg-json-fetcher"
-version = "0.3.0"
+version = "0.4.0"
 description = "Track BRREG annual accounts and publish resumable data releases"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["requests>=2.32,<3", "ijson>=3.3,<4", "pyarrow>=18,<26"]
+dependencies = ["requests>=2.32,<3", "ijson>=3.3,<4"]
 
 [project.scripts]
 brreg-fetch = "brreg_fetcher.cli:main"

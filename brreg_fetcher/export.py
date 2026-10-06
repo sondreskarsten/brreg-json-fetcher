@@ -1,8 +1,9 @@
 """Self-contained release assets and checksum-verified checkpoint restoration."""
 
-import base64
+import csv
 import gzip
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -11,11 +12,8 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pyarrow as pa
-import pyarrow.parquet as pq
-
 from . import __version__
-from .client import SourceError
+from .client import SourceError, unsupported_plan
 from .state import SCHEMA_VERSION, canonical
 
 CHUNK_BYTES = 1024 * 1024
@@ -50,60 +48,137 @@ def rows(state, current_only=False):
         }
 
 
-def parquet_record(row):
+def csv_record(row):
     result = flatten(row["filing"])
     result.update({f"_meta.{k}": v for k, v in row.items() if k != "filing"})
     result["_meta.filing_json"] = canonical(row["filing"])
     return result
 
 
-def kind(value):
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "bool"
-    if isinstance(value, int) and -(2**63) <= value < 2**63:
-        return "int"
-    if isinstance(value, float):
-        return "float"
-    return "string"
+def write_csv(records, columns, destination, stem, max_bytes):
+    """Split on record boundaries; every CSV is independently readable."""
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=columns, lineterminator="\r\n")
+    writer.writeheader()
+    header = buffer.getvalue().encode("utf-8")
+    if len(header) > max_bytes:
+        raise SourceError("CSV asset limit is smaller than its header")
+    paths = []
+    count = 0
+    path = destination / f"{stem}.csv"
+    out = path.open("wb")
+    paths.append(path)
+    out.write(header)
+    size = len(header)
+    try:
+        for row in records:
+            buffer.seek(0)
+            buffer.truncate()
+            writer.writerow(row)
+            record = buffer.getvalue().encode("utf-8")
+            if len(header) + len(record) > max_bytes:
+                raise SourceError("One CSV record exceeds the asset limit")
+            if size + len(record) > max_bytes:
+                out.close()
+                path = destination / f"{stem}-{len(paths) + 1:05d}.csv"
+                out = path.open("wb")
+                paths.append(path)
+                out.write(header)
+                size = len(header)
+            out.write(record)
+            size += len(record)
+            count += 1
+    finally:
+        out.close()
+        buffer.close()
+    if len(paths) > 1:
+        paths[0] = paths[0].rename(destination / f"{stem}-00001.csv")
+    return {"rows": count, "columns": columns, "files": [p.name for p in paths]}
 
 
-def write_parquet(state, path):
-    # Two streaming passes prevent Arrow from inferring field names only from
-    # the first row and silently dropping leaves found in subsequent rows.
-    kinds = {}
+def export_csv(state, destination, max_bytes):
+    # Discover columns over every current filing, including fields appearing late.
+    columns = {"_meta.orgnr", "_meta.fiscal_year", "_meta.snapshot_date", "_meta.filing_json"}
     for row in rows(state, current_only=True):
-        for key, value in parquet_record(row).items():
-            kinds.setdefault(key, set()).add(kind(value))
-    if not kinds:
-        kinds = {"_meta.orgnr": {"string"}, "_meta.filing_json": {"string"}}
-    types = {}
-    for key, options in sorted(kinds.items()):
-        options = options - {"null"}
-        if options == {"int"}:
-            types[key] = pa.int64()
-        elif options and options <= {"int", "float"}:
-            types[key] = pa.float64()
-        elif options == {"bool"}:
-            types[key] = pa.bool_()
-        else:
-            types[key] = pa.string()
-    schema = pa.schema(list(types.items()))
-    with pq.ParquetWriter(path, schema, compression="snappy") as writer:
-        batch = []
+        columns.update(csv_record(row))
+
+    def records():
         for row in rows(state, current_only=True):
-            rec = parquet_record(row)
-            for key, typ in types.items():
-                value = rec.get(key)
-                if value is not None and pa.types.is_string(typ) and not isinstance(value, str):
-                    rec[key] = canonical(value)
-            batch.append(rec)
-            if len(batch) == 2048:
-                writer.write_table(pa.Table.from_pylist(batch, schema=schema))
-                batch = []
-        if batch:
-            writer.write_table(pa.Table.from_pylist(batch, schema=schema))
+            record = csv_record(row)
+            record["_meta.snapshot_date"] = state.get("entities_date", "")
+            yield record
+
+    accounts = write_csv(records(), sorted(columns), destination, "accounts", max_bytes)
+    # One coverage row per seed entity, including absence, unsupported plans and
+    # unfinished local runs. Historical observations never stand in for this month.
+    query = """
+        SELECT e.orgnr, e.organisasjonsform, e.year AS latest_filing_year,
+               o.observed_at, o.status AS http_status, o.sha256 AS response_sha256,
+               o.message, w.orgnr AS pending, w.error AS pending_error, r.body_gzip
+        FROM entities e
+        LEFT JOIN observations o ON o.seq = (
+            SELECT max(seq) FROM observations WHERE orgnr=e.orgnr AND generation=?
+        )
+        LEFT JOIN work w ON w.orgnr=e.orgnr
+        LEFT JOIN responses r ON r.sha256=o.sha256
+        WHERE e.active=1 ORDER BY e.orgnr
+    """
+
+    def observations():
+        for row in state.db.execute(query, (state.get("cycle"),)):
+            record = dict(row)
+            body = record.pop("body_gzip")
+            status = record["http_status"]
+            pending = record.pop("pending")
+            message = record.pop("pending_error") or record["message"]
+            record["message"] = message
+            record["snapshot_date"] = state.get("entities_date", "")
+            record["outcome"] = (
+                "pending"
+                if pending or status is None
+                else "ok"
+                if status == 200
+                else "not_found"
+                if status == 404
+                else "unsupported"
+                if unsupported_plan(status, message or "")
+                else "error"
+            )
+            record["error_body"] = (
+                gzip.decompress(body).decode("utf-8", errors="replace")
+                if body is not None and status != 200
+                else ""
+            )
+            yield record
+
+    coverage = write_csv(
+        observations(),
+        [
+            "orgnr",
+            "snapshot_date",
+            "organisasjonsform",
+            "latest_filing_year",
+            "observed_at",
+            "http_status",
+            "response_sha256",
+            "outcome",
+            "message",
+            "error_body",
+        ],
+        destination,
+        "observations",
+        max_bytes,
+    )
+    return {
+        "schema_version": "arsregnskap-nokkeltall-monthly-csv/v1",
+        "format": "csv",
+        "encoding": "utf-8",
+        "delimiter": ",",
+        "grain": "one row per returned regnskap",
+        "snapshot_date": state.get("entities_date"),
+        "accounts": accounts,
+        "observations": coverage,
+    }
 
 
 def sha256_file(path):
@@ -163,37 +238,9 @@ def export_release(
         ):
             shutil.copyfileobj(source, out, CHUNK_BYTES)
 
+    dataset = None
     if not checkpoint_only:
-        for filename, current_only in [
-            ("accounts.jsonl.gz", True),
-            ("filings-history.jsonl.gz", False),
-        ]:
-            with gzip.open(destination / filename, "wt", encoding="utf-8") as out:
-                for row in rows(state, current_only):
-                    out.write(canonical(row) + "\n")
-        write_parquet(state, destination / "accounts.parquet")
-        for table in ("entities", "observations", "work"):
-            with gzip.open(destination / f"{table}.jsonl.gz", "wt", encoding="utf-8") as out:
-                for row in state.db.execute(f"SELECT * FROM {table}"):
-                    out.write(canonical(dict(row)) + "\n")
-        with gzip.open(destination / "seed.jsonl.gz", "wt", encoding="utf-8") as out:
-            for row in state.db.execute(
-                "SELECT orgnr, year, organisasjonsform FROM entities WHERE active=1 ORDER BY orgnr"
-            ):
-                out.write(canonical(dict(row)) + "\n")
-        with gzip.open(destination / "responses.jsonl.gz", "wt", encoding="utf-8") as out:
-            for row in state.db.execute("SELECT * FROM responses ORDER BY sha256"):
-                out.write(
-                    canonical(
-                        {
-                            "sha256": row["sha256"],
-                            "body_base64": base64.b64encode(
-                                gzip.decompress(row["body_gzip"])
-                            ).decode("ascii"),
-                        }
-                    )
-                    + "\n"
-                )
+        dataset = export_csv(state, destination, max_asset_bytes)
 
     if snapshot_path:
         if state.get("seed_sha256") and sha256_file(snapshot_path) != state.get("seed_sha256"):
@@ -218,6 +265,7 @@ def export_release(
         "entities_date": state.get("entities_date"),
         "generation": state.get("generation"),
         "universe": {"organisasjonsform": ["AS", "ASA"], "latest_accounts_year": "non-null"},
+        "dataset": dataset,
         "assets": {},
     }
     for path in sorted(destination.iterdir()):

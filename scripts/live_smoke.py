@@ -104,7 +104,7 @@ def main():
                     f"Downloaded **{total:,}** entities. Seed: **{counts.get('AS', 0):,} AS** and "
                     f"**{counts.get('ASA', 0):,} ASA** with a filed-account year.\n\n"
                     f"Sampled **{len(samples)}** entities; returned **{report['returned_filings']}** filings. "
-                    "See the artifact for exact JSON responses, the seed, and Parquet.\n"
+                    "See the artifact for exact JSON responses, the seed, and CSV.\n"
                 )
         if not all(successes.values()):
             raise RuntimeError(

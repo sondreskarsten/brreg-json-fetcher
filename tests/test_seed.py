@@ -1,3 +1,4 @@
+import csv
 import gzip
 import json
 import sqlite3
@@ -40,8 +41,8 @@ def test_export_contains_filtered_seed_with_legal_form(state, tmp_path):
         [entity(), entity("974760673", form="ASA"), entity("999999999", form="ENK")], "2026-10-06"
     )
     export_release(state, tmp_path / "release")
-    with gzip.open(tmp_path / "release/seed.jsonl.gz", "rt") as source:
-        seed = [json.loads(line) for line in source]
+    with (tmp_path / "release/observations.csv").open(newline="") as source:
+        seed = list(csv.DictReader(source))
     assert len(seed) == 2
     assert {row["organisasjonsform"] for row in seed} == {"AS", "ASA"}
 
