@@ -72,3 +72,13 @@ def test_announcement_query_uses_exact_all_subcategory_value():
     client = client_with(http(200, "Antall treff 0".encode("cp1252")))
     assert client.announcement_html(date(2026, 10, 6)) == "Antall treff 0"
     assert client.session.get.call_args.kwargs["params"]["id_niva2"] == "- - -"
+
+
+@pytest.mark.parametrize("spelling", ["stottet", "støttet"])
+def test_unsupported_bank_plan_is_not_retried(state, spelling):
+    message = f"Regnskapet inneholder en oppstillingsplan som ikke er {spelling} (BANK)"
+    client = client_with(http(500, json.dumps({"message": message}).encode()))
+    result = client.accounts("816914582")
+    assert client.session.get.call_count == 1
+    outcome = state.record("816914582", "load-a", result, "2026-10-06")
+    assert outcome["unsupported"] and not outcome["retry"]

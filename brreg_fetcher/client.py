@@ -28,10 +28,17 @@ class AccountResponse:
     message: str = ""
 
 
+def unsupported_plan(status, message):
+    # Live API responses use both the Norwegian and ASCII spellings.
+    return status == 500 and "oppstillingsplan som ikke er stottet" in message.casefold().replace(
+        "ø", "o"
+    )
+
+
 class Client:
     def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.2.1"})
+        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.2.2"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep
@@ -48,6 +55,13 @@ class Client:
                 self.sleep(min(2**attempt, 30))
                 continue
             retry = response.status_code == 429 or response.status_code in (500, 502, 503, 504)
+            if response.status_code == 500 and not kwargs.get("stream"):
+                try:
+                    message = response.json().get("message", "")
+                except (ValueError, AttributeError):
+                    message = ""
+                if unsupported_plan(response.status_code, str(message)):
+                    return response
             # BRREG has also returned its rate-limit message with HTTP 200.
             if not kwargs.get("stream") and b"Too many requests" in response.content[:300]:
                 retry = True

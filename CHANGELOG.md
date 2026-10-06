@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Recognise both `stottet` and `støttet` in unsupported accounting-plan errors, based on live GitHub-runner responses; avoid retrying these permanent errors.
+
 ## 0.2.1
 
 - Seed collection from the downloaded Enhetsregisteret copy, restricted to AS/ASA entities with a nonmissing filed-account year.

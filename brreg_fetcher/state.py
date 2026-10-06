@@ -7,7 +7,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from .client import SourceError, decode_filings
+from .client import SourceError, decode_filings, unsupported_plan
 
 SCHEMA_VERSION = "2"
 UNIVERSE_VERSION = "as-asa-filed-v1"
@@ -202,9 +202,7 @@ class State:
         filings = decode_filings(response.body, orgnr) if response.status == 200 else []
         digest = hashlib.sha256(response.body).hexdigest()
         new_ids = changed_ids = 0
-        unsupported = (
-            response.status == 500 and "oppstillingsplan som ikke er støttet" in response.message
-        )
+        unsupported = unsupported_plan(response.status, response.message)
         terminal = response.status in (200, 404) or unsupported
         with self.db:
             self.db.execute(
