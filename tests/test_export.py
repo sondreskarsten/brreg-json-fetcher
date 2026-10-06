@@ -11,8 +11,7 @@ from brreg_fetcher.state import State
 
 
 def test_release_round_trip_union_fields_raw_bytes_and_checkpoint(state, tmp_path):
-    state.sync_entities([entity()], "2026-10-01")
-    state.schedule({"load-a"})
+    state.start_cycle([entity()], "2026-10-01")
     raw = response(filing(), filing(id=2, account_type="KONSERN", eiendeler={"goodwill": 200}))
     state.record("923609016", "a", raw, "2026-10-01T12:00:00+00:00")
     out = tmp_path / "release"

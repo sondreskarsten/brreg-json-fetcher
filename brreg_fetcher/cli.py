@@ -31,7 +31,7 @@ def main(argv=None):
     )
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
-    run = commands.add_parser("collect", help="Collect signals and fetch queued account responses")
+    run = commands.add_parser("collect", help="Collect or resume the monthly AS/ASA snapshot")
     run.add_argument("--state", default="data/checkpoint.sqlite3")
     run.add_argument(
         "--entity-snapshot",
@@ -42,7 +42,6 @@ def main(argv=None):
     run.add_argument(
         "--date", type=date.fromisoformat, default=datetime.now(ZoneInfo("Europe/Oslo")).date()
     )
-    run.add_argument("--lookback", type=nonnegative, default=7, help="Announcement overlap in days")
     run.add_argument("--workers", type=int, choices=range(1, 21), default=4)
     run.add_argument("--max-entities", type=nonnegative, default=0, help="0 means no count limit")
     run.add_argument(
@@ -51,17 +50,20 @@ def main(argv=None):
         default=0,
         help="Stop between request batches; 0 is unlimited",
     )
-    run.add_argument(
-        "--reconcile",
-        action="store_true",
-        help="Refetch every eligible entity on the next new load",
-    )
     run.add_argument("--report", type=Path, help="Write a machine-readable run summary")
     export = commands.add_parser(
         "export", help="Create data assets, checkpoint, manifest and checksums"
     )
     export.add_argument("--state", default="data/checkpoint.sqlite3")
     export.add_argument("--output", type=Path, required=True)
+    export.add_argument(
+        "--checkpoint-only",
+        action="store_true",
+        help="Skip data views for frequent recovery checkpoints",
+    )
+    export.add_argument(
+        "--entity-snapshot", type=Path, help="Include the original compressed entity download"
+    )
     status = commands.add_parser("status", help="Show checkpoint counts")
     status.add_argument("--state", default="data/checkpoint.sqlite3")
     restore = commands.add_parser("restore", help="Verify and restore a release checkpoint")
@@ -82,11 +84,9 @@ def main(argv=None):
                 state,
                 Client(snapshot_path=args.entity_snapshot),
                 args.date,
-                lookback=args.lookback,
                 workers=args.workers,
                 max_entities=args.max_entities,
                 max_seconds=args.max_seconds,
-                reconcile=args.reconcile,
             )
             print(json.dumps(report, indent=2))
             if args.report:
@@ -94,7 +94,17 @@ def main(argv=None):
                 args.report.write_text(json.dumps(report, indent=2) + "\n")
             return 2 if report["errors"] else 0
         if args.command == "export":
-            print(json.dumps(export_release(state, args.output), indent=2))
+            print(
+                json.dumps(
+                    export_release(
+                        state,
+                        args.output,
+                        checkpoint_only=args.checkpoint_only,
+                        snapshot_path=args.entity_snapshot,
+                    ),
+                    indent=2,
+                )
+            )
         elif args.command == "status":
             print(json.dumps(state.summary(), indent=2))
         return 0
@@ -107,6 +117,7 @@ def main(argv=None):
                 "errors": 1,
                 "fatal_error": str(exc),
                 "date": args.date.isoformat(),
+                "cycle": state.get("cycle"),
             }
             with state.db:
                 state.set("last_run", json.dumps(report, sort_keys=True))

@@ -27,15 +27,13 @@ def main():
     day = datetime.now(ZoneInfo("Europe/Oslo")).date().isoformat()
     try:
         print("Downloading the full Enhetsregisteret main-entity snapshot...", flush=True)
-        total = state.sync_entities(client.entities(), day)
+        total = state.start_cycle(client.entities(), day)
         counts = dict(
             state.db.execute(
                 "SELECT organisasjonsform, count(*) FROM entities WHERE active=1 GROUP BY organisasjonsform"
             )
         )
         print(json.dumps({"downloaded_entities": total, "seed_by_form": counts}), flush=True)
-        loads = client.loads()
-        state.schedule(loads)
         raw_dir = args.output / "responses"
         raw_dir.mkdir()
         samples = []
@@ -88,7 +86,6 @@ def main():
             "snapshot_bytes": snapshot.stat().st_size,
             "snapshot_sha256": sha256_file(snapshot),
             "seed_by_form": counts,
-            "load_files": len(loads),
             "successful_entities": successes,
             "sampled_entities": len(samples),
             "returned_filings": sum(len(s["filings"]) for s in samples),

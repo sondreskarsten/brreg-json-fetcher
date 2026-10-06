@@ -1,5 +1,7 @@
 import json
 import subprocess
+from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -35,7 +37,7 @@ def test_resume_uses_latest_published_data_checkpoint_including_prerelease(monke
                         {"tag_name": "v0.2.0", "draft": False, "published_at": "2026-10-09"},
                         {"tag_name": "data-1", "draft": False, "published_at": "2026-10-01"},
                         {
-                            "tag_name": "data-2",
+                            "tag_name": "checkpoint-2026-10-2",
                             "draft": False,
                             "prerelease": True,
                             "published_at": "2026-10-02",
@@ -44,13 +46,25 @@ def test_resume_uses_latest_published_data_checkpoint_including_prerelease(monke
                     ]
                 ]
             )
+        if args[:2] == ("release", "download"):
+            directory = Path(args[args.index("--dir") + 1])
+            (directory / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "format_version": 1,
+                        "kind": "checkpoint",
+                        "cycle": "2026-10",
+                        "complete": False,
+                    }
+                )
+            )
         return ""
 
     restored = []
     monkeypatch.setattr(release, "gh", fake_gh)
     monkeypatch.setattr(release, "restore_checkpoint", lambda *args: restored.append(args))
     release.resume("owner/repo", tmp_path / "download", tmp_path / "state")
-    assert calls[1][2] == "data-2"
+    assert calls[1][2] == "checkpoint-2026-10-2"
     assert len(restored) == 1
 
 
@@ -58,17 +72,25 @@ def test_publish_keeps_draft_if_uploaded_asset_set_is_incomplete(monkeypatch, tm
     directory = tmp_path / "assets"
     directory.mkdir()
     (directory / "manifest.json").write_text(
-        json.dumps({"complete": True, "entities_date": "2026-10-06", "counts": {}})
+        json.dumps(
+            {
+                "kind": "checkpoint",
+                "cycle": "2026-10",
+                "complete": False,
+                "entities_date": "2026-10-06",
+                "counts": {},
+            }
+        )
     )
     calls = []
 
     def fake_gh(*args):
         calls.append(args)
-        return '{"assets": []}' if args[1] == "view" else ""
+        return "[[]]" if args[0] == "api" else ('{"assets": []}' if args[1] == "view" else "")
 
     monkeypatch.setattr(release, "gh", fake_gh)
     with pytest.raises(RuntimeError, match="remains a draft"):
-        release.publish("owner/repo", directory, "data-1", "a" * 40)
+        release.publish("owner/repo", directory, "checkpoint-2026-10-1", "a" * 40)
     assert not any(call[1] == "edit" for call in calls)
 
 
@@ -80,8 +102,82 @@ def test_source_error_clears_previous_complete_status(monkeypatch, state, tmp_pa
         state.set("last_run", '{"complete": true}')
 
     def fail(*args, **kwargs):
-        raise SourceError("announcement page incomplete")
+        raise SourceError("entity download incomplete")
 
     monkeypatch.setattr(cli, "collect", fail)
     assert cli.main(["collect", "--state", str(tmp_path / "checkpoint.sqlite3")]) == 1
     assert json.loads(state.get("last_run"))["complete"] is False
+
+
+def test_completed_month_only_reads_manifest_and_does_not_download_checkpoint(
+    monkeypatch, tmp_path
+):
+    calls = []
+
+    def fake_gh(*args):
+        calls.append(args)
+        if args[0] == "api":
+            return json.dumps(
+                [
+                    [
+                        {"tag_name": "data-2026-10", "draft": False, "published_at": "2026-10-10"},
+                        {
+                            "tag_name": "checkpoint-2026-10-older",
+                            "draft": False,
+                            "published_at": "2026-10-11",
+                        },
+                    ]
+                ]
+            )
+        directory = Path(args[args.index("--dir") + 1])
+        (directory / "manifest.json").write_text(
+            json.dumps({"format_version": 1, "kind": "data", "cycle": "2026-10", "complete": True})
+        )
+        return ""
+
+    monkeypatch.setattr(release, "gh", fake_gh)
+    assert (
+        release.resume(
+            "owner/repo", tmp_path / "download", tmp_path / "state", today=date(2026, 10, 12)
+        )
+        is False
+    )
+    assert len(calls) == 2 and calls[1][2] == "data-2026-10"
+    assert not (tmp_path / "state").exists()
+
+
+def test_complete_checkpoint_still_needs_final_publication(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_gh(*args):
+        calls.append(args)
+        if args[0] == "api":
+            return json.dumps(
+                [
+                    [
+                        {
+                            "tag_name": "checkpoint-2026-10-run1-3",
+                            "draft": False,
+                            "published_at": "2026-10-10",
+                        }
+                    ]
+                ]
+            )
+        directory = Path(args[args.index("--dir") + 1])
+        (directory / "manifest.json").write_text(
+            json.dumps(
+                {"format_version": 1, "kind": "checkpoint", "cycle": "2026-10", "complete": True}
+            )
+        )
+        return ""
+
+    restored = []
+    monkeypatch.setattr(release, "gh", fake_gh)
+    monkeypatch.setattr(release, "restore_checkpoint", lambda *args: restored.append(args))
+    assert (
+        release.resume(
+            "owner/repo", tmp_path / "download", tmp_path / "state", today=date(2026, 10, 12)
+        )
+        is True
+    )
+    assert len(restored) == 1 and len(calls) == 3

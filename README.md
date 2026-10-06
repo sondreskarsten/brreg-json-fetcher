@@ -1,55 +1,101 @@
 # brreg-json-fetcher
 
-Determine which Norwegian entities have annual accounts, detect new filings, and preserve what the BRREG accounts API returns. Publish the resulting data and resumable checkpoints as GitHub releases.
+Collect a fresh monthly snapshot of Norwegian AS/ASA annual accounts and publish it as a GitHub release. Collection can span multiple runner sessions and multiple days.
 
-## 1. Which orgnr have annual accounts
+## Monthly seed
 
-The source is Enhetsregisteret, the entity register. Its JSON property `sisteInnsendteAarsregnskap` contains the year of the most recent annual accounts received for an entity. The supplied research refers to this property as `sisteinnsendteaarsregnskap`; the collector accepts both spellings.
+At the start of each collection month, download the complete Enhetsregisteret main-entity register:
 
-| Operation | Endpoint |
+```text
+GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned
+```
+
+Keep only records where `organisasjonsform.kode` is **AS** or **ASA** and `sisteInnsendteAarsregnskap` is a nonmissing integer year. Missing, null, blank, and NA values are excluded. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
+
+Every eligible entity is fetched once successfully per cycle, with retries for temporary failures. The collector no longer reads announcements or the accounts API load log. New account submissions are picked up by the next monthly full collection.
+
+The live test on 6 October 2026 downloaded **1,176,724** entity records and selected **402,552 AS** plus **211 ASA** entities. These are observed counts for that download, not hardcoded expectations.
+
+## Multi-day collection on GitHub runners
+
+The **Monthly data collection** workflow runs on `ubuntu-latest`:
+
+1. Inspect the latest monthly data release or recovery checkpoint. If the current month's data release is already complete, stop after reading its manifest.
+2. Restore unfinished work. If a new month is due and the previous collection is finished and published, download a fresh seed and queue every eligible entity.
+3. Run up to **three one-hour fetch segments**, using four workers. After each segment, publish a durable recovery checkpoint. In-flight requests and export/upload time are additional to the fetch budget; the overall job has a 330-minute limit.
+4. If work remains, the next daily continuation restores the queue. Completed entities are not fetched again for that month. Retryable failures remain queued and visibly prevent completion.
+5. Once the queue is finished, publish **`data-YYYY-MM`** with the original seed download, account exports, request outcomes, history, and a resumable checkpoint.
+
+The scheduler has a monthly-start trigger on the first day and continuation triggers on the remaining days, at **04:17 UTC** (05:17 Oslo in winter, 06:17 in summer). These are continuation checks, not daily reseeding or daily data releases. When a monthly release is complete, remaining checks that month make no BRREG requests and do not download the large checkpoint.
+
+If October's batch is still running in November, it keeps October's seed and finishes/publishes October first. A subsequent run downloads the current month's seed. Missed historical months cannot be reconstructed from today's register/API; the collector does not manufacture backdated snapshots.
+
+Enable scheduled runs with the repository variable `BRREG_DATA_ENABLED=true` after the workflow is on the default branch. For the first manual run, select `bootstrap: true`; later manual runs resume existing state. The built-in `GITHUB_TOKEN` needs `contents: write`. Runs are serialised to protect the queue.
+
+### Recovery and completion
+
+- `checkpoint-YYYY-MM-...` prereleases contain recovery state. They are not completed monthly datasets. They have no short artifact-retention deadline, so a long collection can resume days or weeks later.
+- The first checkpoint for a month also stores the full original Enhetsregisteret download. Later checkpoints reference it by release tag and SHA-256 instead of reuploading it each hour. The final monthly release includes the verified original download again.
+- Each response is committed locally. An abrupt runner loss can require repeating work since the last successfully published segment checkpoint; it does not discard earlier segments. Retrying a request preserves response/history identity through hashes and filing IDs.
+- A failed checkpoint upload leaves a draft; subsequent runs restore the last published checkpoint. Files left by publication failures are also saved as workflow artifacts for 30 days when possible.
+- A crash after the final checkpoint but before the monthly data release is handled on the next run: it publishes that finished month before starting another seed.
+- `404` and recognised unsupported accounting plans are recorded terminal outcomes. Network/rate-limit/server failures retain pending work. A finished queue means every seed entity has a terminal outcome, not that every entity returned supported accounts.
+
+The collection window may span days. Each response has an observation timestamp. The monthly dataset is a collection made during that window, **not a simultaneous month-end observation**. The manifest records the seed date and collection start/finish.
+
+## Run locally
+
+Python 3.12 and [uv](https://docs.astral.sh/uv/) are required:
+
+```bash
+uv sync --frozen
+uv run brreg-fetch collect --workers 4 --max-seconds 3600
+uv run brreg-fetch status
+# Rerun collect to resume the same month until its queue is finished.
+uv run brreg-fetch export --output dist/data --entity-snapshot data/enheter.json.gz
+```
+
+State defaults to `data/checkpoint.sqlite3`; the original bulk copy defaults to `data/enheter.json.gz`. Use `--max-entities` for a bounded account sample (the initial source download still covers the full register). `runner.py` and `parser.py` remain compatibility entry points for `collect` and `export`. Use one collector/export process per checkpoint at a time.
+
+For frequent local recovery exports without regenerating all data views:
+
+```bash
+uv run brreg-fetch export --checkpoint-only --output dist/checkpoint
+```
+
+For a downloaded release:
+
+```bash
+(cd downloaded-release && sha256sum -c SHA256SUMS)
+uv run brreg-fetch restore --from downloaded-release --state data/checkpoint.sqlite3
+```
+
+Restore verifies part checksums, the assembled checksum, SQLite integrity, and schema compatibility. It refuses to overwrite an existing checkpoint. Older change-detection checkpoints are migrated; their filing/response history is preserved, while their old work selection is replaced by a fresh monthly AS/ASA seed.
+
+Exit code `2` means account errors remain; `1` means a source/configuration/export failure. Reaching a segment budget is a successful partial run. Neither a partial run nor an incomplete local export is published as a completed monthly data release.
+
+## Release files
+
+| Asset | Contents |
 | --- | --- |
-| Daily bulk download of registered main entities | `GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned` |
-| One entity | `GET https://data.brreg.no/enhetsregisteret/api/enheter/{orgnr}` |
+| `enheter.json.gz` | Original full source download used for this month's seed |
+| `seed.jsonl.gz` | Frozen eligible AS/ASA seed: orgnr, latest filing year, legal form |
+| `accounts.jsonl.gz`, `accounts.parquet` | Successful filings observed in this collection month, with metadata and complete filing JSON |
+| `filings-history.jsonl.gz` | Previously observed filing IDs, each with its most recently observed content |
+| `responses.jsonl.gz` | Exact distinct response bodies as base64, keyed by SHA-256, including prior revisions and errors |
+| `entities.jsonl.gz` | Entity-register eligibility and legal forms |
+| `observations.jsonl.gz` | HTTP outcomes, times, cycle identifiers, response hashes, and filing-change counts |
+| `work.jsonl.gz` | Remaining work and error messages (empty at successful completion) |
+| `checkpoint.sqlite3.gz` | Complete resumable state |
+| `manifest.json`, `SHA256SUMS` | Cycle, source provenance, completion, coverage counts, and checksums |
 
-The seed is derived from a downloaded copy of Enhetsregisteret. Keep only records where `organisasjonsform.kode` is **AS** or **ASA** and `sisteInnsendteAarsregnskap` is a nonblank integer year. Missing, null, blank, and NA values are excluded; other legal forms are excluded even when they have filed accounts. This is a selection rule based on the entity register; it does not guarantee that the accounts API supports the entity's accounting plan.
+At the start of a new month, the current filing view is cleared and rebuilt from that month's responses; older successes cannot masquerade as new observations. Historical filings and exact responses remain preserved. The internal observation field `generation` identifies the `YYYY-MM` cycle; older migrated observations may contain their original identifier.
 
-A new or changed year is the first change signal. A resubmission for the same year leaves that year unchanged. The collector streams the bulk JSON, compares complete daily snapshots, and commits the new snapshot only after the download has parsed successfully. Entities missing from the latest bulk file, lacking a filing year, or no longer AS/ASA leave the active universe and current account view; their previously collected history remains available.
+Assets exceeding 1 GiB use ordered `.partNNNN` files to stay below GitHub's 2 GiB per-asset limit. The manifest lists part order and full-file checksums. Published monthly releases are immutable; incomplete uploads stay drafts until the full asset set is verified.
 
-## 2. Kunngjøringer as the second change signal
+Version-matching `v*` tags build a wheel/source **software release draft**, separately from monthly data releases.
 
-Search public announcements at `https://w2.brreg.no/kunngjoring/kombisok.jsp`.
-
-| Parameter | Meaning | Value used |
-| --- | --- | --- |
-| `datoFra`, `datoTil` | Announcement date range | `dd.mm.yyyy`; one day per query |
-| `id_region` | Geographic region | `0` for the whole country; then `100`–`600` and `999` |
-| `id_fylke` | County within a region | County code, discovered from the site's county lookup |
-| `id_niva1` | Announcement category | `70`, Godkjente årsregnskap |
-| `id_niva2` | Subcategory | `- - -` for all, **including the spaces** |
-| `id_bransje1` | Industry | `0` for all |
-| `spraak` | Language | `no` |
-
-The response is HTML. Links of the form `hent_en.jsp?kid={kid}&sokeverdi={orgnr}` identify an announcement and its entity. The collector deduplicates by `kid`, checks parsed links against the reported hit count, and rejects error pages even when HTTP status is 200.
-
-A search exceeding 5,000 hits is not paginated. `Antall treff overstiger` triggers subdivision by region, then county. If a single county still overflows, the run fails visibly without marking that day complete. It must not silently omit announcements.
-
-Category 70 covers approved annual accounts, including same-year resubmissions and accounts with sustainability reporting. Category 111 is for interim balance sheets and is not used as an annual-accounts change signal. `hent_nr.jsp?orgnr={orgnr}` provides a manual per-entity completeness check.
-
-The supplied nine-month snapshot analysis found a category-70 announcement within a week for approximately 99% of same-year resubmissions, compared with approximately 7% detected through the entity-register year. These are findings from that analysis, not independently reproduced benchmarks or completeness guarantees.
-
-Each run rechecks a seven-day announcement overlap. Days missed between runs are also collected. Duplicate announcements do not create duplicate work. Unanswered signals remain pending indefinitely; a week is a matching window, not an expiry rule.
-
-## 3. When the accounts API can have changed
-
-`GET https://data.brreg.no/regnskapsregisteret/regnskap/log` returns a JSON array of loaded bulk-file names.
-
-The collector uses newly observed file names as the gate for scheduling account fetches. Reordering or removing log entries is not treated as a new load. On a new load, it queues eligible entities that have never been fetched or have unanswered change signals. The first load observed during bootstrap queues the initial universe.
-
-A day with no new file still updates entity and announcement signals, but schedules no new account requests. Unfinished requests already queued for an earlier load can resume, including after network failures or a run budget is reached. The load checkpoint and its work queue are saved together, so an interruption cannot mark a load handled while losing its requests.
-
-This follows the supplied observation that account updates arrive through these loads. It is an operational assumption, not a guarantee made by the API specification. Schema enrichment can change a response without changing its filing ID. Use `--reconcile` on a run that observes a new load to refetch the entire active universe and detect such changes; selective signals alone cannot discover every same-ID content change.
-
-## 4. What the accounts API returns
+## What the accounts API returns
 
 `GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`
 
@@ -128,81 +174,7 @@ The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year
 
 Other API paths, relative to `/regnskapsregisteret/regnskap`, include `/{orgnr}/{id}`, `/aarsregnskap/kopi/{orgnr}/aar`, `/aarsregnskap/kopi/{orgnr}/{aar}`, `/aarsregnskap/mellombalanse/{orgnr}/aar`, and `/aarsregnskap/mellombalanse/{orgnr}/{id}`. PDF copies and interim-balance retrieval are outside this collector's scope.
 
-## 5. Putting it together and releasing the results
-
-1. Read the entity snapshot and compare latest filing years.
-2. Collect category-70 announcements, including overlap and missed days.
-3. Read the account load log. Queue pending entities when a new file appears.
-4. Fetch and preserve complete responses. A newly observed ID answers an entity's signal if first observed no earlier than seven days before the signal date; there is no upper time limit. A same-ID content revision is retained but does not answer the signal. Matching at entity level does not prove which specific announcement caused a filing change.
-5. Publish exports and a recoverable checkpoint. Restore that checkpoint before the next run.
-
-### Run locally
-
-Python 3.12 and [uv](https://docs.astral.sh/uv/) are required. No Google credentials are needed.
-
-```bash
-uv sync --frozen
-uv run brreg-fetch collect --workers 4 --max-entities 1000
-uv run brreg-fetch status
-uv run brreg-fetch export --output dist/data
-```
-
-`data/checkpoint.sqlite3` is the default state location. The full, successfully parsed source download is retained as `data/enheter.json.gz` (override with `--entity-snapshot`); the filtered AS/ASA seed is exported as `seed.jsonl.gz`. Older checkpoints are migrated and forced to refresh their entity snapshot before fetching. The first collection downloads the full main-entity register even when `--max-entities` limits account requests. Rerun collection with the same state to continue. `--max-seconds` stops between bounded request batches. Exit code `2` means account fetch errors remain; code `1` means a source, configuration, or export failure. Reaching a count/time budget is a successful partial run, clearly marked `complete: false` in its manifest. Run one collector/export process per checkpoint at a time.
-
-For a full refresh on a newly observed load:
-
-```bash
-uv run brreg-fetch collect --reconcile
-```
-
-If no new load exists, that invocation does not schedule a refresh; run it again when a new load is available. `runner.py` and `parser.py` are compatibility entry points for `collect` and `export`. Collection and publication run on GitHub-hosted Ubuntu runners using the built-in repository token.
-
-### GitHub releases
-
-Two workflows use the repository's built-in `GITHUB_TOKEN` with `contents: write`:
-
-- **Software release:** a `v*` tag must match the package version. Tests and lint run before a wheel, source distribution, and checksums are uploaded from the GitHub runner. The release remains a draft for review; publish it in GitHub when ready. A retry can repair draft assets, but never replaces assets of a published software release.
-- **Data release:** manually start the workflow with `bootstrap: true` for the first baseline. Later runs restore the most recently published `data-*` checkpoint, including partial prereleases. Set the repository variable `BRREG_DATA_ENABLED=true` to enable the daily schedule at **04:17 UTC** (05:17 Oslo in winter, 06:17 in summer). Overlapping runs are serialised. The scheduled collection has a four-hour account-fetch budget; bootstrap may need several runs.
-
-The data workflow never silently starts over after authentication, download, or checksum failure. The `bootstrap` input only permits a new baseline when a successful release listing contains no published data checkpoint. Releases use unique run tags and do not overwrite earlier releases. A failed upload leaves a draft. Recovery assets are also kept as workflow artifacts for seven days. Partial collections are published as prereleases; collection failures still fail the workflow after preserving the checkpoint. Data releases are not marked GitHub's “latest” software release.
-
-| Asset | Contents |
-| --- | --- |
-| `accounts.jsonl.gz` | Most recently observed successful filings; each line includes observation metadata and the full filing object |
-| `accounts.parquet` | The same current view, with flattened source fields and complete filing JSON |
-| `filings-history.jsonl.gz` | Every observed filing ID, retaining its most recently seen content |
-| `responses.jsonl.gz` | Every distinct exact response body, base64 encoded and keyed by SHA-256; includes earlier content revisions and error bodies |
-| `seed.jsonl.gz` | Only AS/ASA entities with a filed-account year: orgnr, year, and legal form |
-| `entities.jsonl.gz` | Entity years, legal forms, and current eligibility |
-| `signals.jsonl.gz` | Entity-year and category-70 signals, including answered/pending state |
-| `observations.jsonl.gz` | Request status, time, generation, response hash, new-ID and content-change counts |
-| `work.jsonl.gz` | Unfinished requests, retry counts, and the most recent failure message |
-| `checkpoint.sqlite3.gz` | Complete state for resuming collection |
-| `manifest.json`, `SHA256SUMS` | Coverage/status, asset order, byte counts, SHA-256 checksums |
-
-A current row means “last successfully observed,” not “known current at publication.” Consult observation times and error statuses. A `404` removes an entity from the current filing view while preserving history. A failed request retains the previous successful view. Leaving the entity universe removes the entity from the current account view and preserves its historical filings. A completed queue does not mean all signals were answered or all accounting plans are supported.
-
-Assets larger than 1 GiB are split into ordered `.partNNNN` files, below GitHub's 2 GiB per-asset limit. To restore a downloaded release:
-
-```bash
-# Download an explicit data release tag using gh release download first.
-(cd downloaded-release && sha256sum -c SHA256SUMS)
-uv run brreg-fetch restore --from downloaded-release --state data/checkpoint.sqlite3
-```
-
-Restore checks part and whole-file checksums, SQLite integrity, and schema version. It refuses to overwrite existing state. For other split files, concatenate parts in the order recorded by `manifest.json` and verify the full-file SHA-256 before reading.
-
-### Test real API data on a GitHub runner
-
-The **Live BRREG API sample** workflow downloads the complete Enhetsregisteret bulk file, builds the filtered seed, and fetches five AS plus five ASA entities selected from that seed. It requires nonempty successful filing responses for both forms. Every HTTP response, including failures, is saved, and the report includes returned IDs, types, periods, currencies, source counts, and the download checksum.
-
-Run it manually from GitHub Actions, or push a unique `api-check-*` tag to test a development commit. Artifacts retain the downloaded bulk copy and a separate sample bundle containing raw responses, the filtered seed, JSONL, Parquet, and the checkpoint for seven days. This is a bounded sample, not a full-universe run or a production data release.
-
-```bash
-uv run python scripts/live_smoke.py --per-form 5
-```
-
-### Development and sources
+## Validation
 
 ```bash
 uv run pytest -q
@@ -211,10 +183,8 @@ uv run ruff format --check .
 uv build
 ```
 
-Tests use deterministic source fixtures and exercise signal matching, load gates, HTML truncation, full filing preservation, retry/resume behaviour, and release restoration. Live checks are separate and do not run during CI.
+Tests cover frozen seeds, restart recovery, retries, month boundaries, publication interruption, full-field exports, and source/checkpoint verification. The multi-run lifecycle tests use real SQLite/export/restore operations with simulated source HTTP and GitHub uploads.
 
-- [BRREG accounts API repository](https://github.com/brreg/regnskapsregister-api)
-- [Regnskapsregisteret dataset](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret)
-- [Live OpenAPI](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs)
-- [Entity register API](https://data.brreg.no/enhetsregisteret/api/docs/index.html)
-- [Announcement search](https://w2.brreg.no/kunngjoring/)
+The **Live BRREG API sample** workflow remains available on manual dispatch or `api-check-*` tags. It downloads the full seed and fetches five AS plus five ASA entities, retaining actual raw JSON and exports as artifacts. The 6 October test returned **33 filings from eight successful responses**, plus two unsupported BANK-plan responses. It does not launch a full monthly collection.
+
+Sources: [BRREG API repository](https://github.com/brreg/regnskapsregister-api), [live OpenAPI](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs), [entity-register API](https://data.brreg.no/enhetsregisteret/api/docs/index.html).

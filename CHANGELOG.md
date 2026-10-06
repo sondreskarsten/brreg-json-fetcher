@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Replace announcement and API-load change detection with a fresh full AS/ASA seed each collection month.
+- Freeze the seed across multi-day runs and month boundaries; refetch every eligible entity for the next cycle.
+- Save durable recovery checkpoints after one-hour segments and publish one completed monthly data release.
+- Recover interrupted final publication before starting a new month's seed, retaining the exact original download.
+- Preserve historical accounts while rebuilding the current filing view for each new month.
+
 ## 0.2.2
 
 - Recognise both `stottet` and `støttet` in unsupported accounting-plan errors, based on live GitHub-runner responses; avoid retrying these permanent errors.

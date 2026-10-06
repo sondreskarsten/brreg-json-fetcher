@@ -39,8 +39,7 @@ def test_bad_response_does_not_replace_current_snapshot(state, payload):
 
 
 def test_404_and_unsupported_are_distinct_from_transient_failure(state):
-    state.sync_entities([entity()], "2026-10-01")
-    state.schedule({"load-a"})
+    state.start_cycle([entity()], "2026-10-01")
     outcome = state.record(
         "923609016", "a", AccountResponse(503, b"unavailable", "HTTP 503"), "2026-10-01"
     )
@@ -48,7 +47,6 @@ def test_404_and_unsupported_are_distinct_from_transient_failure(state):
     message = "Regnskapet inneholder en oppstillingsplan som ikke er støttet (BANK)"
     outcome = state.record("923609016", "a", AccountResponse(500, b"error", message), "2026-10-01")
     assert outcome["unsupported"] and not outcome["retry"] and not list(state.todo())
-    assert state.summary()["pending_signals"] == 1
     state.record("923609016", "b", response(filing()), "2026-10-02")
     state.record("923609016", "c", AccountResponse(404, b""), "2026-10-03")
     assert state.summary()["current_filings"] == 0

@@ -140,7 +140,14 @@ def split_asset(path, max_bytes):
     return parts
 
 
-def export_release(state, destination, max_asset_bytes=DEFAULT_ASSET_BYTES):
+def export_release(
+    state,
+    destination,
+    max_asset_bytes=DEFAULT_ASSET_BYTES,
+    *,
+    checkpoint_only=False,
+    snapshot_path=None,
+):
     if max_asset_bytes < 1:
         raise ValueError("Asset limit must be positive")
     destination = Path(destination)
@@ -152,51 +159,63 @@ def export_release(state, destination, max_asset_bytes=DEFAULT_ASSET_BYTES):
         state.backup(checkpoint)
         with (
             checkpoint.open("rb") as source,
-            gzip.open(destination / "checkpoint.sqlite3.gz", "wb") as out,
+            gzip.open(destination / "checkpoint.sqlite3.gz", "wb", compresslevel=1) as out,
         ):
             shutil.copyfileobj(source, out, CHUNK_BYTES)
 
-    for filename, current_only in [
-        ("accounts.jsonl.gz", True),
-        ("filings-history.jsonl.gz", False),
-    ]:
-        with gzip.open(destination / filename, "wt", encoding="utf-8") as out:
-            for row in rows(state, current_only):
-                out.write(canonical(row) + "\n")
-    write_parquet(state, destination / "accounts.parquet")
-    for table in ("entities", "signals", "observations", "work"):
-        with gzip.open(destination / f"{table}.jsonl.gz", "wt", encoding="utf-8") as out:
-            for row in state.db.execute(f"SELECT * FROM {table}"):
+    if not checkpoint_only:
+        for filename, current_only in [
+            ("accounts.jsonl.gz", True),
+            ("filings-history.jsonl.gz", False),
+        ]:
+            with gzip.open(destination / filename, "wt", encoding="utf-8") as out:
+                for row in rows(state, current_only):
+                    out.write(canonical(row) + "\n")
+        write_parquet(state, destination / "accounts.parquet")
+        for table in ("entities", "observations", "work"):
+            with gzip.open(destination / f"{table}.jsonl.gz", "wt", encoding="utf-8") as out:
+                for row in state.db.execute(f"SELECT * FROM {table}"):
+                    out.write(canonical(dict(row)) + "\n")
+        with gzip.open(destination / "seed.jsonl.gz", "wt", encoding="utf-8") as out:
+            for row in state.db.execute(
+                "SELECT orgnr, year, organisasjonsform FROM entities WHERE active=1 ORDER BY orgnr"
+            ):
                 out.write(canonical(dict(row)) + "\n")
-    with gzip.open(destination / "seed.jsonl.gz", "wt", encoding="utf-8") as out:
-        for row in state.db.execute(
-            "SELECT orgnr, year, organisasjonsform FROM entities WHERE active=1 ORDER BY orgnr"
-        ):
-            out.write(canonical(dict(row)) + "\n")
-    with gzip.open(destination / "responses.jsonl.gz", "wt", encoding="utf-8") as out:
-        for row in state.db.execute("SELECT * FROM responses ORDER BY sha256"):
-            out.write(
-                canonical(
-                    {
-                        "sha256": row["sha256"],
-                        "body_base64": base64.b64encode(gzip.decompress(row["body_gzip"])).decode(
-                            "ascii"
-                        ),
-                    }
+        with gzip.open(destination / "responses.jsonl.gz", "wt", encoding="utf-8") as out:
+            for row in state.db.execute("SELECT * FROM responses ORDER BY sha256"):
+                out.write(
+                    canonical(
+                        {
+                            "sha256": row["sha256"],
+                            "body_base64": base64.b64encode(
+                                gzip.decompress(row["body_gzip"])
+                            ).decode("ascii"),
+                        }
+                    )
+                    + "\n"
                 )
-                + "\n"
-            )
+
+    if snapshot_path:
+        if state.get("seed_sha256") and sha256_file(snapshot_path) != state.get("seed_sha256"):
+            raise SourceError("Entity download does not match this month's seed checksum")
+        shutil.copyfile(snapshot_path, destination / "enheter.json.gz")
 
     report = json.loads(state.get("last_run", "{}"))
     manifest = {
         "format_version": 1,
         "software_version": __version__,
         "created_at": datetime.now(UTC).isoformat(),
-        "complete": report.get("complete", False),
+        "complete": bool(state.get("cycle_completed_at"))
+        and state.summary()["queued_entities"] == 0,
+        "kind": "checkpoint" if checkpoint_only else "data",
+        "cycle": state.get("cycle"),
+        "collection_started_at": state.get("cycle_started_at"),
+        "collection_finished_at": state.get("cycle_completed_at"),
+        "seed_sha256": state.get("seed_sha256"),
+        "seed_release_tag": state.get("seed_release_tag"),
         "last_run": report,
         "counts": state.summary(),
         "entities_date": state.get("entities_date"),
-        "announcements_through": state.get("announcements_through"),
         "generation": state.get("generation"),
         "universe": {"organisasjonsform": ["AS", "ASA"], "latest_accounts_year": "non-null"},
         "assets": {},
@@ -220,32 +239,41 @@ def export_release(state, destination, max_asset_bytes=DEFAULT_ASSET_BYTES):
     return manifest
 
 
-def restore_checkpoint(source, destination):
+def restore_asset(source, name, destination):
+    """Join and verify one logical asset without trusting filenames from a manifest."""
     source, destination = Path(source), Path(destination)
     if destination.exists():
-        raise SourceError("Refusing to replace an existing checkpoint")
+        raise SourceError("Refusing to replace an existing asset")
     manifest = json.loads((source / "manifest.json").read_text())
     if manifest.get("format_version") != 1:
         raise SourceError("Unsupported release format")
-    asset = manifest["assets"]["checkpoint.sqlite3.gz"]
+    asset = manifest["assets"][name]
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".brreg-asset-") as tmp:
+        joined = Path(tmp) / "joined"
+        with joined.open("wb") as out:
+            for part in asset["parts"]:
+                filename = part["name"]
+                if Path(filename).name != filename or filename in (".", ".."):
+                    raise SourceError("Unsafe release asset filename")
+                path = source / filename
+                if path.stat().st_size != part["bytes"] or sha256_file(path) != part["sha256"]:
+                    raise SourceError(f"Checksum mismatch: {filename}")
+                with path.open("rb") as stream:
+                    shutil.copyfileobj(stream, out, CHUNK_BYTES)
+        if joined.stat().st_size != asset["bytes"] or sha256_file(joined) != asset["sha256"]:
+            raise SourceError("Asset checksum mismatch after joining parts")
+        os.replace(joined, destination)
+
+
+def restore_checkpoint(source, destination):
+    destination = Path(destination)
+    if destination.exists():
+        raise SourceError("Refusing to replace an existing checkpoint")
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".brreg-restore-") as tmp:
         compressed = Path(tmp) / "checkpoint.gz"
-        with compressed.open("wb") as out:
-            for part in asset["parts"]:
-                name = part["name"]
-                if Path(name).name != name or name in (".", ".."):
-                    raise SourceError("Unsafe release asset filename")
-                path = source / name
-                if path.stat().st_size != part["bytes"] or sha256_file(path) != part["sha256"]:
-                    raise SourceError(f"Checksum mismatch: {name}")
-                with path.open("rb") as stream:
-                    shutil.copyfileobj(stream, out, CHUNK_BYTES)
-        if (
-            compressed.stat().st_size != asset["bytes"]
-            or sha256_file(compressed) != asset["sha256"]
-        ):
-            raise SourceError("Checkpoint checksum mismatch after joining parts")
+        restore_asset(source, "checkpoint.sqlite3.gz", compressed)
         restored = Path(tmp) / "checkpoint.sqlite3"
         with gzip.open(compressed, "rb") as stream, restored.open("wb") as out:
             shutil.copyfileobj(stream, out, CHUNK_BYTES)
@@ -253,6 +281,6 @@ def restore_checkpoint(source, destination):
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise SourceError("Checkpoint failed SQLite integrity check")
             row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if row is None or row[0] not in ("1", SCHEMA_VERSION):
+            if row is None or row[0] not in ("1", "2", SCHEMA_VERSION):
                 raise SourceError("Unsupported checkpoint schema")
         os.replace(restored, destination)

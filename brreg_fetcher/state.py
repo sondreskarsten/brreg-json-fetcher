@@ -1,4 +1,4 @@
-"""Transactional checkpoints, pending signals, and lossless response history."""
+"""Frozen monthly seeds, resumable queues, and lossless response history."""
 
 import gzip
 import hashlib
@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .client import SourceError, decode_filings, unsupported_plan
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 UNIVERSE_VERSION = "as-asa-filed-v1"
 
 
@@ -30,13 +30,6 @@ class State:
                 orgnr TEXT PRIMARY KEY, year INTEGER, active INTEGER NOT NULL,
                 observed_on TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS signals (
-                kind TEXT NOT NULL, source_key TEXT NOT NULL, orgnr TEXT NOT NULL,
-                signal_date TEXT NOT NULL, answered_by INTEGER,
-                PRIMARY KEY(kind, source_key)
-            );
-            CREATE INDEX IF NOT EXISTS signals_org ON signals(orgnr, answered_by);
-            CREATE TABLE IF NOT EXISTS loads (name TEXT PRIMARY KEY);
             CREATE TABLE IF NOT EXISTS work (
                 orgnr TEXT PRIMARY KEY, generation TEXT NOT NULL,
                 attempts INTEGER NOT NULL DEFAULT 0, error TEXT
@@ -61,7 +54,7 @@ class State:
             );
         """)
         existing = self.get("schema_version")
-        if existing not in (None, "1", SCHEMA_VERSION):
+        if existing not in (None, "1", "2", SCHEMA_VERSION):
             raise SourceError(f"Unsupported checkpoint schema {existing}")
         with self.db:
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(entities)")}
@@ -69,6 +62,13 @@ class State:
                 self.db.execute("ALTER TABLE entities ADD COLUMN organisasjonsform TEXT")
                 # Old checkpoints did not capture legal form; refresh before fetching.
                 self.db.execute("DELETE FROM meta WHERE key='entities_date'")
+            if existing in ("1", "2"):
+                self.db.execute("DROP TABLE IF EXISTS signals")
+                self.db.execute("DROP TABLE IF EXISTS loads")
+                self.db.execute("DELETE FROM work")
+                self.db.execute(
+                    "DELETE FROM meta WHERE key IN ('entities_date', 'announcements_through', 'generation')"
+                )
             self.set("schema_version", SCHEMA_VERSION)
 
     def close(self):
@@ -81,7 +81,7 @@ class State:
     def set(self, key, value):
         self.db.execute("INSERT OR REPLACE INTO meta VALUES (?, ?)", (key, str(value)))
 
-    def sync_entities(self, records, day):
+    def sync_entities(self, records, day, cycle=None):
         """Commit a new entity snapshot only after the entire download parses."""
         self.db.execute("DROP TABLE IF EXISTS temp.incoming")
         self.db.execute(
@@ -111,16 +111,6 @@ class State:
                     count += 1
                 if count == 0:
                     raise SourceError("Refusing an empty entity snapshot")
-                self.db.execute(
-                    """
-                    INSERT OR IGNORE INTO signals(kind, source_key, orgnr, signal_date)
-                    SELECT 'entity_year', i.orgnr || ':' || ? || ':' || i.year, i.orgnr, ?
-                    FROM incoming i LEFT JOIN entities e USING(orgnr)
-                    WHERE i.year IS NOT NULL AND i.organisasjonsform IN ('AS', 'ASA')
-                      AND (e.year IS NULL OR e.year != i.year OR e.active=0)
-                """,
-                    (day, day),
-                )
                 self.db.execute("UPDATE entities SET active=0")
                 self.db.execute(
                     """
@@ -141,59 +131,37 @@ class State:
                 )
                 self.set("entities_date", day)
                 self.set("universe_version", UNIVERSE_VERSION)
+                if cycle:
+                    eligible = self.db.execute(
+                        "SELECT count(*) FROM entities WHERE active=1"
+                    ).fetchone()[0]
+                    if not eligible:
+                        raise SourceError("Refusing to start a month with an empty AS/ASA seed")
+                    self.db.execute("DELETE FROM work")
+                    self.db.execute("DELETE FROM current_filings")
+                    self.db.execute(
+                        "INSERT INTO work(orgnr, generation) SELECT orgnr, ? FROM entities WHERE active=1",
+                        (cycle,),
+                    )
+                    self.db.execute(
+                        "DELETE FROM meta WHERE key IN ('cycle_completed_at', 'cycle_published', 'seed_release_tag', 'seed_sha256')"
+                    )
+                    self.set("cycle", cycle)
+                    self.set("cycle_started_at", day)
+                    self.set("generation", cycle)
         except (sqlite3.IntegrityError, AttributeError) as exc:
             raise SourceError("Invalid or duplicate entity in bulk download") from exc
         return count
 
-    def add_announcements(self, announcements, day):
-        with self.db:
-            self.db.executemany(
-                "INSERT OR IGNORE INTO signals(kind, source_key, orgnr, signal_date) VALUES ('announcement_70', ?, ?, ?)",
-                ((a.kid, a.orgnr, day) for a in announcements),
-            )
-            self.set("announcements_through", day)
-
-    def answer_signals(self, orgnr=None):
-        # A newly observed id can precede the signal by seven days, or arrive
-        # later without a hard expiry. Same-id content updates do not answer it.
-        sql = """
-            UPDATE signals SET answered_by=(
-                SELECT f.id FROM filings f WHERE f.orgnr=signals.orgnr
-                  AND date(f.first_seen) >= date(signals.signal_date, '-7 days')
-                ORDER BY f.first_seen, f.id LIMIT 1
-            ) WHERE answered_by IS NULL
-        """
-        self.db.execute(sql + (" AND orgnr=?" if orgnr else ""), (orgnr,) if orgnr else ())
-
-    def schedule(self, loads, reconcile=False):
-        known = {r[0] for r in self.db.execute("SELECT name FROM loads")}
-        new = loads - known
-        with self.db:
-            self.answer_signals()
-            if not new:
-                return 0
-            generation = hashlib.sha256(canonical(sorted(loads)).encode()).hexdigest()
-            where = (
-                ""
-                if reconcile
-                else """
-                AND (NOT EXISTS (SELECT 1 FROM observations o WHERE o.orgnr=e.orgnr)
-                  OR EXISTS (SELECT 1 FROM signals s WHERE s.orgnr=e.orgnr AND s.answered_by IS NULL))
-            """
-            )
-            self.db.execute(
-                f"""
-                INSERT INTO work(orgnr, generation)
-                SELECT orgnr, ? FROM entities e WHERE active=1 {where}
-                ON CONFLICT(orgnr) DO UPDATE SET generation=excluded.generation
-            """,
-                (generation,),
-            )
-            self.db.executemany(
-                "INSERT OR IGNORE INTO loads VALUES (?)", ((name,) for name in loads)
-            )
-            self.set("generation", generation)
-        return len(new)
+    def start_cycle(self, records, day):
+        cycle = day[:7]
+        previous = self.get("cycle")
+        if previous:
+            if cycle <= previous:
+                raise SourceError("A month can only be seeded once; resume its existing queue")
+            if not self.get("cycle_completed_at") or self.summary()["queued_entities"]:
+                raise SourceError("Finish the active month before downloading a new seed")
+        return self.sync_entities(records, day, cycle=cycle)
 
     def todo(self):
         return self.db.execute("SELECT orgnr, generation FROM work ORDER BY attempts, orgnr")
@@ -253,7 +221,6 @@ class State:
                     changed_ids,
                 ),
             )
-            self.answer_signals(orgnr)
             if terminal:
                 self.db.execute("DELETE FROM work WHERE orgnr=?", (orgnr,))
             else:
@@ -278,7 +245,6 @@ class State:
     def summary(self):
         queries = {
             "eligible_entities": "SELECT count(*) FROM entities WHERE active=1",
-            "pending_signals": "SELECT count(*) FROM signals WHERE answered_by IS NULL",
             "queued_entities": "SELECT count(*) FROM work",
             "historical_filings": "SELECT count(*) FROM filings",
             "current_filings": "SELECT count(*) FROM current_filings",

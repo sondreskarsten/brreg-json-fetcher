@@ -16,7 +16,6 @@ from brreg_fetcher.state import State
 def test_missing_year_never_enters_seed(state, year):
     state.sync_entities([entity(year=year)], "2026-10-06")
     assert state.summary()["eligible_entities"] == 0
-    assert state.summary()["pending_signals"] == 0
 
 
 @pytest.mark.parametrize(
@@ -25,15 +24,11 @@ def test_missing_year_never_enters_seed(state, year):
 def test_only_as_and_asa_with_filed_accounts_are_eligible(state, form, eligible):
     state.sync_entities([entity(form=form)], "2026-10-06")
     assert state.summary()["eligible_entities"] == eligible
-    state.schedule({"load-a"})
-    assert len(list(state.todo())) == eligible
 
 
 def test_legal_form_change_removes_work_and_current_view_but_preserves_history(state):
-    state.sync_entities([entity()], "2026-10-05")
-    state.schedule({"load-a"})
+    state.start_cycle([entity()], "2026-10-05")
     state.record("923609016", "a", response(filing()), "2026-10-05")
-    state.schedule({"load-b"}, reconcile=True)
     state.sync_entities([entity(form="NUF")], "2026-10-06")
     assert not list(state.todo())
     assert state.summary()["current_filings"] == 0
@@ -61,7 +56,7 @@ def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
         )
     state = State(path)
     try:
-        assert state.get("schema_version") == "2"
+        assert state.get("schema_version") == "3"
         assert state.get("entities_date") is None
         state.sync_entities([entity(form="ENK")], "2026-10-06")
         assert state.summary()["eligible_entities"] == 0

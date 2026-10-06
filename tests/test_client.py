@@ -1,6 +1,5 @@
 import gzip
 import json
-from datetime import date
 from unittest.mock import Mock
 
 import pytest
@@ -43,7 +42,7 @@ def test_exhausted_rate_limit_is_not_success():
 
 def test_connection_failure_retries_then_recovers():
     client = client_with(requests.ConnectionError("down"), http(200, b'["load-a"]'))
-    assert client.loads() == {"load-a"}
+    assert client.json("https://example.test") == ["load-a"]
 
 
 @pytest.mark.parametrize("compressed", [False, True])
@@ -66,12 +65,6 @@ def test_incomplete_download_does_not_commit_entity_snapshot(state):
         state.sync_entities(client.entities(), "2026-10-06")
     assert state.get("entities_date") is None
     assert state.summary()["eligible_entities"] == 0
-
-
-def test_announcement_query_uses_exact_all_subcategory_value():
-    client = client_with(http(200, "Antall treff 0".encode("cp1252")))
-    assert client.announcement_html(date(2026, 10, 6)) == "Antall treff 0"
-    assert client.session.get.call_args.kwargs["params"]["id_niva2"] == "- - -"
 
 
 @pytest.mark.parametrize("spelling", ["stottet", "støttet"])

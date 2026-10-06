@@ -14,7 +14,6 @@ import requests
 
 ACCOUNTS_URL = "https://data.brreg.no/regnskapsregisteret/regnskap"
 ENTITIES_URL = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned"
-ANNOUNCEMENTS_URL = "https://w2.brreg.no/kunngjoring"
 
 
 class SourceError(RuntimeError):
@@ -38,7 +37,7 @@ def unsupported_plan(status, message):
 class Client:
     def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.2.2"})
+        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.3.0"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep
@@ -86,12 +85,6 @@ class Client:
             except ValueError as exc:
                 raise SourceError(f"Invalid JSON: {url}") from exc
 
-    def loads(self):
-        loads = self.json(f"{ACCOUNTS_URL}/log")
-        if not isinstance(loads, list) or not all(isinstance(x, str) and x for x in loads):
-            raise SourceError("The account load log is not an array of file names")
-        return set(loads)
-
     def entities(self):
         # The download can be gzip as a file, HTTP content encoding, or plain JSON.
         # requests decodes HTTP encoding; inspect the remaining file magic once.
@@ -124,7 +117,10 @@ class Client:
             if self.snapshot_path:
                 if not compressed:
                     packed = Path(tmp) / "entities.gz"
-                    with path.open("rb") as source, gzip.open(packed, "wb") as dest:
+                    with (
+                        path.open("rb") as source,
+                        gzip.open(packed, "wb", compresslevel=1) as dest,
+                    ):
                         shutil.copyfileobj(source, dest, 1024 * 1024)
                     path = packed
                 os.replace(path, self.snapshot_path)
@@ -138,35 +134,6 @@ class Client:
                 except (ValueError, AttributeError):
                     message = f"HTTP {r.status_code}"
             return AccountResponse(r.status_code, r.content, message)
-
-    def announcement_html(self, day, region="0", county=None):
-        params = {
-            "datoFra": day.strftime("%d.%m.%Y"),
-            "datoTil": day.strftime("%d.%m.%Y"),
-            "id_region": region,
-            "id_niva1": "70",
-            "id_niva2": "- - -",
-            "id_bransje1": "0",
-            "spraak": "no",
-        }
-        if county is not None:
-            params["id_fylke"] = county
-        with self.get(f"{ANNOUNCEMENTS_URL}/kombisok.jsp", params=params) as r:
-            if r.status_code != 200:
-                raise SourceError(f"Announcement search returned HTTP {r.status_code}")
-            # This legacy endpoint declares windows-1252 in its HTML.
-            return r.content.decode("cp1252")
-
-    def counties(self, region):
-        payload = self.json(
-            f"{ANNOUNCEMENTS_URL}/rest/fylkerIRegion.rest", params={"regionnr": region}
-        )
-        if not isinstance(payload, dict) or payload.get("valid") is not True:
-            raise SourceError(f"Cannot discover counties for region {region}")
-        counties = [str(x["nummer"]) for x in payload.get("fylker", [])]
-        if not counties:
-            raise SourceError(f"No counties returned for overflowing region {region}")
-        return counties
 
 
 def decode_filings(raw, orgnr):

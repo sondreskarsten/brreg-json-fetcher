@@ -1,15 +1,13 @@
-name: Data release
+name: Monthly data collection
 on:
   schedule:
-    - cron: '17 4 * * *'
+    # Monthly start; later wake-ups resume the frozen queue or recover publication.
+    - cron: '17 4 1 * *'
+    - cron: '17 4 2-31 * *'
   workflow_dispatch:
     inputs:
       bootstrap:
-        description: Allow the first baseline when no published data checkpoint exists
-        type: boolean
-        default: false
-      reconcile:
-        description: Refetch every eligible entity when a new API load is observed
+        description: Allow the first monthly seed if no published checkpoint exists
         type: boolean
         default: false
 permissions:
@@ -32,45 +30,25 @@ jobs:
           python-version: '3.12'
       - run: uv sync --frozen
       - run: uv run pytest -q
-      - name: Restore latest published data checkpoint
+      - name: Inspect latest monthly release or restore unfinished work
+        id: resume
         env:
           BOOTSTRAP: ${{ inputs.bootstrap }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           args=()
-          if [ "$BOOTSTRAP" = true ]; then args+=(--bootstrap); fi
+          if [ "$BOOTSTRAP" = true ] || [ "$EVENT_NAME" = schedule ]; then args+=(--bootstrap); fi
           uv run python scripts/release.py resume --directory data/previous "${args[@]}"
           rm -rf data/previous
-      - name: Collect with a bounded runtime
-        id: collect
-        env:
-          RECONCILE: ${{ inputs.reconcile }}
-        run: |
-          args=()
-          if [ "$RECONCILE" = true ]; then args+=(--reconcile); fi
-          set +e
-          uv run brreg-fetch collect --workers 4 --max-seconds 14400 --report data/run.json "${args[@]}"
-          result=$?
-          set -e
-          echo "result=$result" >> "$GITHUB_OUTPUT"
-          test -f data/checkpoint.sqlite3
-      - name: Export release files
-        run: uv run brreg-fetch export --output dist/data
-      - name: Preserve recovery assets if publication fails
+      - name: Collect up to three one-hour segments and checkpoint each segment
+        if: steps.resume.outputs.needs_run == 'true'
+        run: uv run python -m scripts.monthly_run --segments 3 --seconds 3600 --workers 4
+      - name: Preserve files from any interrupted publication
+        if: failure() && steps.resume.outputs.needs_run == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: brreg-data-${{ github.run_id }}-${{ github.run_attempt }}
-          path: dist/data/
+          name: brreg-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/monthly/
+          if-no-files-found: warn
           compression-level: 0
-          retention-days: 7
-      - name: Publish data release
-        env:
-          RUN_ID: ${{ github.run_id }}
-          RUN_ATTEMPT: ${{ github.run_attempt }}
-          TARGET_SHA: ${{ github.sha }}
-        run: |
-          tag="data-$(date -u +%Y%m%dT%H%M%SZ)-${RUN_ID}-${RUN_ATTEMPT}"
-          uv run python scripts/release.py publish --directory dist/data --tag "$tag" --target "$TARGET_SHA"
-      - name: Surface collection errors after checkpoint publication
-        env:
-          COLLECT_RESULT: ${{ steps.collect.outputs.result }}
-        run: test "$COLLECT_RESULT" = 0
+          retention-days: 30

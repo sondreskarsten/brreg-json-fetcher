@@ -10,16 +10,11 @@ class FakeClient:
     def __init__(self):
         self.calls = []
         self.fail = False
-        self.load_names = {"load-a"}
+        self.downloads = 0
 
     def entities(self):
+        self.downloads += 1
         return [entity(), entity("974760673")]
-
-    def announcement_html(self, day, *args):
-        return "Antall treff 0"
-
-    def loads(self):
-        return self.load_names
 
     def accounts(self, orgnr):
         self.calls.append(orgnr)
@@ -28,11 +23,10 @@ class FakeClient:
         return response(filing(orgnr=orgnr))
 
 
-def test_budgeted_bootstrap_resume_and_unchanged_load(state):
+def test_budgeted_monthly_collection_resumes_without_redownloading(state):
     client = FakeClient()
     kwargs = {
         "workers": 1,
-        "lookback": 0,
         "max_entities": 1,
         "account_client_factory": lambda: client,
     }
@@ -42,6 +36,7 @@ def test_budgeted_bootstrap_resume_and_unchanged_load(state):
     assert second["attempted"] == 1 and second["complete"]
     third = collect(state, client, date(2026, 10, 6), **kwargs)
     assert third["attempted"] == 0 and len(client.calls) == 2
+    assert client.downloads == 1
 
 
 def test_transient_failure_stays_queued_and_run_is_incomplete(state):
@@ -52,7 +47,6 @@ def test_transient_failure_stays_queued_and_run_is_incomplete(state):
         client,
         date(2026, 10, 6),
         workers=1,
-        lookback=0,
         account_client_factory=lambda: client,
     )
     assert report["errors"] == 2 and report["queued_entities"] == 2 and not report["complete"]
@@ -62,7 +56,6 @@ def test_transient_failure_stays_queued_and_run_is_incomplete(state):
         client,
         date(2026, 10, 6),
         workers=1,
-        lookback=0,
         account_client_factory=lambda: client,
     )
     assert report["errors"] == 0 and report["complete"]

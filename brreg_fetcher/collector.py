@@ -1,14 +1,14 @@
-"""Collect signals daily; issue account requests only for queued load work."""
+"""Start one fresh seed per month and resume it across runs and month boundaries."""
 
 import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 from itertools import islice
 
-from .announcements import announcements_for_day
 from .client import Client, SourceError
+from .export import sha256_file
 
 log = logging.getLogger(__name__)
 
@@ -18,34 +18,32 @@ def collect(
     client,
     day,
     *,
-    lookback=7,
     workers=4,
     max_entities=0,
     max_seconds=0,
-    reconcile=False,
     account_client_factory=Client,
 ):
-    previous = state.get("entities_date")
-    if previous and day.isoformat() < previous:
-        raise SourceError("Cannot move the collection date behind the stored entity snapshot")
-    if previous != day.isoformat():
-        count = state.sync_entities(client.entities(), day.isoformat())
-        log.info("Read %s entity records", count)
-
-    last = state.get("announcements_through")
-    start = (date.fromisoformat(last) if last else day) - timedelta(days=lookback)
-    while start <= day:
-        signals = announcements_for_day(client, start)
-        state.add_announcements(signals, start.isoformat())
-        log.info("%s: %s category-70 announcements", start, len(signals))
-        start += timedelta(days=1)
-
-    new_loads = state.schedule(client.loads(), reconcile=reconcile)
+    cycle = state.get("cycle")
+    month = day.strftime("%Y-%m")
+    if cycle and month < cycle:
+        raise SourceError("Cannot run a date earlier than the active collection month")
+    if not cycle or (cycle < month and state.get("cycle_completed_at")):
+        count = state.start_cycle(client.entities(), day.isoformat())
+        snapshot = getattr(client, "snapshot_path", None)
+        if snapshot:
+            with state.db:
+                state.set("seed_sha256", sha256_file(snapshot))
+        log.info(
+            "New monthly seed: %s entity records, %s eligible",
+            count,
+            state.summary()["eligible_entities"],
+        )
     log.info(
-        "New load files: %s; queued entities: %s", new_loads, state.summary()["queued_entities"]
+        "Month %s; queued entities: %s", state.get("cycle"), state.summary()["queued_entities"]
     )
     report = {
-        "new_loads": new_loads,
+        "cycle": state.get("cycle"),
+        "seed_date": state.get("entities_date"),
         "attempted": 0,
         "ok": 0,
         "not_found": 0,
@@ -64,7 +62,7 @@ def collect(
         except (SourceError, OSError, ValueError) as exc:
             return row, None, exc
 
-    # Snapshot this run's queue: failures are tried once per invocation after HTTP
+    # Snapshot this segment's queue: failures are tried once per invocation after HTTP
     # retries, and work beyond the budget survives in SQLite for the next run.
     todo = iter(list(state.todo()))
     started = time.monotonic()
@@ -72,8 +70,8 @@ def collect(
         while True:
             if max_seconds and time.monotonic() - started >= max_seconds:
                 break
-            remaining = max_entities - report["attempted"] if max_entities else workers * 4
-            batch = list(islice(todo, max(0, min(workers * 4, remaining))))
+            remaining = max_entities - report["attempted"] if max_entities else workers
+            batch = list(islice(todo, max(0, min(workers, remaining))))
             if not batch:
                 break
             for row, response, error in pool.map(fetch, batch):
@@ -101,5 +99,7 @@ def collect(
     with state.db:
         import json
 
+        if report["complete"] and not state.get("cycle_completed_at"):
+            state.set("cycle_completed_at", datetime.now(UTC).isoformat())
         state.set("last_run", json.dumps(report, sort_keys=True))
     return report
