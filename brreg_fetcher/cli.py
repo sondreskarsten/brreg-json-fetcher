@@ -34,6 +34,12 @@ def main(argv=None):
     run = commands.add_parser("collect", help="Collect signals and fetch queued account responses")
     run.add_argument("--state", default="data/checkpoint.sqlite3")
     run.add_argument(
+        "--entity-snapshot",
+        type=Path,
+        default=Path("data/enheter.json.gz"),
+        help="Retain the downloaded Enhetsregisteret bulk copy here",
+    )
+    run.add_argument(
         "--date", type=date.fromisoformat, default=datetime.now(ZoneInfo("Europe/Oslo")).date()
     )
     run.add_argument("--lookback", type=nonnegative, default=7, help="Announcement overlap in days")
@@ -74,7 +80,7 @@ def main(argv=None):
         if args.command == "collect":
             report = collect(
                 state,
-                Client(),
+                Client(snapshot_path=args.entity_snapshot),
                 args.date,
                 lookback=args.lookback,
                 workers=args.workers,

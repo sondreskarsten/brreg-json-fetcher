@@ -2,6 +2,8 @@
 
 import gzip
 import json
+import os
+import shutil
 import tempfile
 import time
 from dataclasses import dataclass
@@ -27,12 +29,13 @@ class AccountResponse:
 
 
 class Client:
-    def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep):
+    def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.2.0"})
+        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.2.1"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep
+        self.snapshot_path = Path(snapshot_path) if snapshot_path else None
 
     def get(self, url, **kwargs):
         for attempt in range(self.attempts):
@@ -78,7 +81,11 @@ class Client:
     def entities(self):
         # The download can be gzip as a file, HTTP content encoding, or plain JSON.
         # requests decodes HTTP encoding; inspect the remaining file magic once.
-        with tempfile.TemporaryDirectory(prefix="brreg-entities-") as tmp:
+        if self.snapshot_path:
+            self.snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix="brreg-entities-", dir=self.snapshot_path.parent if self.snapshot_path else None
+        ) as tmp:
             path = Path(tmp) / "entities"
             with self.get(ENTITIES_URL, stream=True) as response:
                 if response.status_code != 200:
@@ -100,6 +107,13 @@ class Client:
                     yield from ijson.items(stream, "item")
                 except ijson.JSONError as exc:
                     raise SourceError("Incomplete or invalid entity bulk JSON") from exc
+            if self.snapshot_path:
+                if not compressed:
+                    packed = Path(tmp) / "entities.gz"
+                    with path.open("rb") as source, gzip.open(packed, "wb") as dest:
+                        shutil.copyfileobj(source, dest, 1024 * 1024)
+                    path = packed
+                os.replace(path, self.snapshot_path)
 
     def accounts(self, orgnr):
         with self.get(f"{ACCOUNTS_URL}/{orgnr}", headers={"Accept": "application/json"}) as r:

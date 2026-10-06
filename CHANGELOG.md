@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Seed collection from the downloaded Enhetsregisteret copy, restricted to AS/ASA entities with a nonmissing filed-account year.
+- Retain the compressed source download and export the filtered seed with legal form.
+- Migrate old checkpoints and refresh eligibility before collection.
+- Add a GitHub-hosted live API test that retains returned JSON and Parquet data.
+
 ## 0.2.0
 
 - Select the collection universe from the entity register's latest annual-account year.
@@ -8,6 +15,6 @@
 - Preserve all SELSKAP/KONSERN periods and evolving fields, including same-ID content revisions.
 - Export complete JSONL, dynamically discovered Parquet fields, and checksummed resumable data releases.
 - Add tested software and data release workflows for GitHub.
-- Replace the GCS/Cloud Run-specific deployment workflow with a local CLI and GitHub release storage.
+- Replace cloud-specific deployment with a local CLI and GitHub release storage.
 
-This is a breaking change: previous GCS environment variables and deployment scripts are no longer used.
+This is a breaking change: previous cloud-storage environment variables and deployment scripts are no longer used.

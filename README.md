@@ -11,9 +11,9 @@ The source is Enhetsregisteret, the entity register. Its JSON property `sisteInn
 | Daily bulk download of registered main entities | `GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned` |
 | One entity | `GET https://data.brreg.no/enhetsregisteret/api/enheter/{orgnr}` |
 
-The collection universe consists of entities with a nonblank integer filing year. Blank or absent values are excluded. This is a selection rule based on the entity register; it does not guarantee that the accounts API supports the entity's accounting plan.
+The seed is derived from a downloaded copy of Enhetsregisteret. Keep only records where `organisasjonsform.kode` is **AS** or **ASA** and `sisteInnsendteAarsregnskap` is a nonblank integer year. Missing, null, blank, and NA values are excluded; other legal forms are excluded even when they have filed accounts. This is a selection rule based on the entity register; it does not guarantee that the accounts API supports the entity's accounting plan.
 
-A new or changed year is the first change signal. A resubmission for the same year leaves that year unchanged. The collector streams the bulk JSON, compares complete daily snapshots, and commits the new snapshot only after the download has parsed successfully. Entities missing from the latest bulk file or lacking a filing year leave the active universe; their previously collected history remains available.
+A new or changed year is the first change signal. A resubmission for the same year leaves that year unchanged. The collector streams the bulk JSON, compares complete daily snapshots, and commits the new snapshot only after the download has parsed successfully. Entities missing from the latest bulk file, lacking a filing year, or no longer AS/ASA leave the active universe and current account view; their previously collected history remains available.
 
 ## 2. Kunngjøringer as the second change signal
 
@@ -147,7 +147,7 @@ uv run brreg-fetch status
 uv run brreg-fetch export --output dist/data
 ```
 
-`data/checkpoint.sqlite3` is the default state location. The first collection downloads the full main-entity register even when `--max-entities` limits account requests. Rerun collection with the same state to continue. `--max-seconds` stops between bounded request batches. Exit code `2` means account fetch errors remain; code `1` means a source, configuration, or export failure. Reaching a count/time budget is a successful partial run, clearly marked `complete: false` in its manifest. Run one collector/export process per checkpoint at a time.
+`data/checkpoint.sqlite3` is the default state location. The full, successfully parsed source download is retained as `data/enheter.json.gz` (override with `--entity-snapshot`); the filtered AS/ASA seed is exported as `seed.jsonl.gz`. Older checkpoints are migrated and forced to refresh their entity snapshot before fetching. The first collection downloads the full main-entity register even when `--max-entities` limits account requests. Rerun collection with the same state to continue. `--max-seconds` stops between bounded request batches. Exit code `2` means account fetch errors remain; code `1` means a source, configuration, or export failure. Reaching a count/time budget is a successful partial run, clearly marked `complete: false` in its manifest. Run one collector/export process per checkpoint at a time.
 
 For a full refresh on a newly observed load:
 
@@ -155,7 +155,7 @@ For a full refresh on a newly observed load:
 uv run brreg-fetch collect --reconcile
 ```
 
-If no new load exists, that invocation does not schedule a refresh; run it again when a new load is available. `runner.py` and `parser.py` are compatibility entry points for `collect` and `export`. The former GCS deployment commands and environment variables have been replaced by this workflow.
+If no new load exists, that invocation does not schedule a refresh; run it again when a new load is available. `runner.py` and `parser.py` are compatibility entry points for `collect` and `export`. Collection and publication run on GitHub-hosted Ubuntu runners using the built-in repository token.
 
 ### GitHub releases
 
@@ -172,14 +172,15 @@ The data workflow never silently starts over after authentication, download, or 
 | `accounts.parquet` | The same current view, with flattened source fields and complete filing JSON |
 | `filings-history.jsonl.gz` | Every observed filing ID, retaining its most recently seen content |
 | `responses.jsonl.gz` | Every distinct exact response body, base64 encoded and keyed by SHA-256; includes earlier content revisions and error bodies |
-| `entities.jsonl.gz` | Entity years and current eligibility |
+| `seed.jsonl.gz` | Only AS/ASA entities with a filed-account year: orgnr, year, and legal form |
+| `entities.jsonl.gz` | Entity years, legal forms, and current eligibility |
 | `signals.jsonl.gz` | Entity-year and category-70 signals, including answered/pending state |
 | `observations.jsonl.gz` | Request status, time, generation, response hash, new-ID and content-change counts |
 | `work.jsonl.gz` | Unfinished requests, retry counts, and the most recent failure message |
 | `checkpoint.sqlite3.gz` | Complete state for resuming collection |
 | `manifest.json`, `SHA256SUMS` | Coverage/status, asset order, byte counts, SHA-256 checksums |
 
-A current row means “last successfully observed,” not “known current at publication.” Consult observation times and error statuses. A `404` removes an entity from the current filing view while preserving history. A failed request retains the previous successful view. Leaving the entity universe also preserves the last observed accounts; join the entity export to restrict to currently eligible entities. A completed queue does not mean all signals were answered or all accounting plans are supported.
+A current row means “last successfully observed,” not “known current at publication.” Consult observation times and error statuses. A `404` removes an entity from the current filing view while preserving history. A failed request retains the previous successful view. Leaving the entity universe removes the entity from the current account view and preserves its historical filings. A completed queue does not mean all signals were answered or all accounting plans are supported.
 
 Assets larger than 1 GiB are split into ordered `.partNNNN` files, below GitHub's 2 GiB per-asset limit. To restore a downloaded release:
 
@@ -190,6 +191,16 @@ uv run brreg-fetch restore --from downloaded-release --state data/checkpoint.sql
 ```
 
 Restore checks part and whole-file checksums, SQLite integrity, and schema version. It refuses to overwrite existing state. For other split files, concatenate parts in the order recorded by `manifest.json` and verify the full-file SHA-256 before reading.
+
+### Test real API data on a GitHub runner
+
+The **Live BRREG API sample** workflow downloads the complete Enhetsregisteret bulk file, builds the filtered seed, and fetches five AS plus five ASA entities selected from that seed. It requires nonempty successful filing responses for both forms. Every HTTP response, including failures, is saved, and the report includes returned IDs, types, periods, currencies, source counts, and the download checksum.
+
+Run it manually from GitHub Actions, or push a unique `api-check-*` tag to test a development commit. Artifacts retain the downloaded bulk copy and a separate sample bundle containing raw responses, the filtered seed, JSONL, Parquet, and the checkpoint for seven days. This is a bounded sample, not a full-universe run or a production data release.
+
+```bash
+uv run python scripts/live_smoke.py --per-form 5
+```
 
 ### Development and sources
 

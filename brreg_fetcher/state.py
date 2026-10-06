@@ -9,7 +9,8 @@ from pathlib import Path
 
 from .client import SourceError, decode_filings
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
+UNIVERSE_VERSION = "as-asa-filed-v1"
 
 
 def canonical(value):
@@ -60,9 +61,14 @@ class State:
             );
         """)
         existing = self.get("schema_version")
-        if existing not in (None, SCHEMA_VERSION):
+        if existing not in (None, "1", SCHEMA_VERSION):
             raise SourceError(f"Unsupported checkpoint schema {existing}")
         with self.db:
+            columns = {row[1] for row in self.db.execute("PRAGMA table_info(entities)")}
+            if "organisasjonsform" not in columns:
+                self.db.execute("ALTER TABLE entities ADD COLUMN organisasjonsform TEXT")
+                # Old checkpoints did not capture legal form; refresh before fetching.
+                self.db.execute("DELETE FROM meta WHERE key='entities_date'")
             self.set("schema_version", SCHEMA_VERSION)
 
     def close(self):
@@ -78,7 +84,9 @@ class State:
     def sync_entities(self, records, day):
         """Commit a new entity snapshot only after the entire download parses."""
         self.db.execute("DROP TABLE IF EXISTS temp.incoming")
-        self.db.execute("CREATE TEMP TABLE incoming (orgnr TEXT PRIMARY KEY, year INTEGER)")
+        self.db.execute(
+            "CREATE TEMP TABLE incoming (orgnr TEXT PRIMARY KEY, year INTEGER, organisasjonsform TEXT)"
+        )
         count = 0
         try:
             with self.db:
@@ -89,12 +97,16 @@ class State:
                     # lowercase spelling for supplied historical snapshots too.
                     if "sisteInnsendteAarsregnskap" not in entity:
                         year = str(entity.get("sisteinnsendteaarsregnskap") or "").strip()
+                    if year.upper() in ("NA", "N/A", "NULL", "NAN"):
+                        year = ""
+                    form = (entity.get("organisasjonsform") or {}).get("kode")
                     if not re.fullmatch(r"\d{9}", orgnr):
                         raise SourceError("Entity snapshot contains an invalid orgnr")
                     if year and not re.fullmatch(r"[1-9]\d{3}", year):
                         raise SourceError(f"Invalid latest filing year for {orgnr}")
                     self.db.execute(
-                        "INSERT INTO incoming VALUES (?, ?)", (orgnr, int(year) if year else None)
+                        "INSERT INTO incoming VALUES (?, ?, ?)",
+                        (orgnr, int(year) if year else None, form),
                     )
                     count += 1
                 if count == 0:
@@ -104,23 +116,31 @@ class State:
                     INSERT OR IGNORE INTO signals(kind, source_key, orgnr, signal_date)
                     SELECT 'entity_year', i.orgnr || ':' || ? || ':' || i.year, i.orgnr, ?
                     FROM incoming i LEFT JOIN entities e USING(orgnr)
-                    WHERE i.year IS NOT NULL AND (e.year IS NULL OR e.year != i.year)
+                    WHERE i.year IS NOT NULL AND i.organisasjonsform IN ('AS', 'ASA')
+                      AND (e.year IS NULL OR e.year != i.year OR e.active=0)
                 """,
                     (day, day),
                 )
                 self.db.execute("UPDATE entities SET active=0")
                 self.db.execute(
                     """
-                    INSERT INTO entities SELECT orgnr, year, year IS NOT NULL, ? FROM incoming WHERE 1
+                    INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform)
+                    SELECT orgnr, year,
+                        year IS NOT NULL AND coalesce(organisasjonsform IN ('AS', 'ASA'), 0),
+                        ?, organisasjonsform FROM incoming WHERE 1
                     ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year, active=excluded.active,
-                        observed_on=excluded.observed_on
+                        observed_on=excluded.observed_on, organisasjonsform=excluded.organisasjonsform
                 """,
                     (day,),
                 )
                 self.db.execute(
                     "DELETE FROM work WHERE orgnr NOT IN (SELECT orgnr FROM entities WHERE active=1)"
                 )
+                self.db.execute(
+                    "DELETE FROM current_filings WHERE orgnr NOT IN (SELECT orgnr FROM entities WHERE active=1)"
+                )
                 self.set("entities_date", day)
+                self.set("universe_version", UNIVERSE_VERSION)
         except (sqlite3.IntegrityError, AttributeError) as exc:
             raise SourceError("Invalid or duplicate entity in bulk download") from exc
         return count

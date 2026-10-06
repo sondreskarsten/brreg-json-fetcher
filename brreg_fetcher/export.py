@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 
 from . import __version__
 from .client import SourceError
-from .state import canonical
+from .state import SCHEMA_VERSION, canonical
 
 CHUNK_BYTES = 1024 * 1024
 DEFAULT_ASSET_BYTES = 1024 * 1024 * 1024
@@ -168,6 +168,11 @@ def export_release(state, destination, max_asset_bytes=DEFAULT_ASSET_BYTES):
         with gzip.open(destination / f"{table}.jsonl.gz", "wt", encoding="utf-8") as out:
             for row in state.db.execute(f"SELECT * FROM {table}"):
                 out.write(canonical(dict(row)) + "\n")
+    with gzip.open(destination / "seed.jsonl.gz", "wt", encoding="utf-8") as out:
+        for row in state.db.execute(
+            "SELECT orgnr, year, organisasjonsform FROM entities WHERE active=1 ORDER BY orgnr"
+        ):
+            out.write(canonical(dict(row)) + "\n")
     with gzip.open(destination / "responses.jsonl.gz", "wt", encoding="utf-8") as out:
         for row in state.db.execute("SELECT * FROM responses ORDER BY sha256"):
             out.write(
@@ -193,6 +198,7 @@ def export_release(state, destination, max_asset_bytes=DEFAULT_ASSET_BYTES):
         "entities_date": state.get("entities_date"),
         "announcements_through": state.get("announcements_through"),
         "generation": state.get("generation"),
+        "universe": {"organisasjonsform": ["AS", "ASA"], "latest_accounts_year": "non-null"},
         "assets": {},
     }
     for path in sorted(destination.iterdir()):
@@ -247,6 +253,6 @@ def restore_checkpoint(source, destination):
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise SourceError("Checkpoint failed SQLite integrity check")
             row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if row is None or row[0] != "1":
+            if row is None or row[0] not in ("1", SCHEMA_VERSION):
                 raise SourceError("Unsupported checkpoint schema")
         os.replace(restored, destination)
