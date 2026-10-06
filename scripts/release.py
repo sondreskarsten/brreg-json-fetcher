@@ -94,9 +94,42 @@ def publish(repo, directory, tag, target):
     )
 
 
+def software(repo, directory, tag, target):
+    pages = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases"))
+    existing = next((r for page in pages for r in page if r["tag_name"] == tag), None)
+    if existing and not existing["draft"]:
+        raise RuntimeError("Refusing to replace assets of a published software release")
+    if existing is None:
+        gh(
+            "release",
+            "create",
+            tag,
+            "--repo",
+            repo,
+            "--target",
+            target,
+            "--verify-tag",
+            "--draft",
+            "--title",
+            tag,
+            "--notes-file",
+            "CHANGELOG.md",
+        )
+    files = sorted(
+        [*directory.glob("*.whl"), *directory.glob("*.tar.gz"), directory / "SHA256SUMS"]
+    )
+    for path in files:
+        gh("release", "upload", tag, str(path), "--repo", repo, "--clobber")
+    remote = json.loads(gh("release", "view", tag, "--repo", repo, "--json", "assets"))
+    if {a["name"]: a["size"] for a in remote["assets"]} != {
+        p.name: p.stat().st_size for p in files
+    }:
+        raise RuntimeError("Software release assets are incomplete; release remains a draft")
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=["resume", "publish"])
+    p.add_argument("command", choices=["resume", "publish", "software"])
     p.add_argument(
         "--repo",
         default=os.environ.get("GITHUB_REPOSITORY"),
@@ -110,6 +143,10 @@ def main():
     args = p.parse_args()
     if args.command == "resume":
         resume(args.repo, args.directory, args.state, args.bootstrap)
+    elif args.command == "software":
+        if not args.tag or not args.tag.startswith("v") or not args.target:
+            p.error("software requires a v tag and an explicit target commit")
+        software(args.repo, args.directory, args.tag, args.target)
     else:
         if not args.tag or not args.tag.startswith("data-") or not args.target:
             p.error("publish requires a data- tag and an explicit target commit")

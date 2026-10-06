@@ -161,7 +161,7 @@ If no new load exists, that invocation does not schedule a refresh; run it again
 
 Two workflows use the repository's built-in `GITHUB_TOKEN` with `contents: write`:
 
-- **Software release:** a `v*` tag must match the package version. Tests and lint run before a wheel, source distribution, and checksums are uploaded. The release stays a draft until uploads succeed.
+- **Software release:** a `v*` tag must match the package version. Tests and lint run before a wheel, source distribution, and checksums are uploaded from the GitHub runner. The release remains a draft for review; publish it in GitHub when ready. A retry can repair draft assets, but never replaces assets of a published software release.
 - **Data release:** manually start the workflow with `bootstrap: true` for the first baseline. Later runs restore the most recently published `data-*` checkpoint, including partial prereleases. Set the repository variable `BRREG_DATA_ENABLED=true` to enable the daily schedule at **04:17 UTC** (05:17 Oslo in winter, 06:17 in summer). Overlapping runs are serialised. The scheduled collection has a four-hour account-fetch budget; bootstrap may need several runs.
 
 The data workflow never silently starts over after authentication, download, or checksum failure. The `bootstrap` input only permits a new baseline when a successful release listing contains no published data checkpoint. Releases use unique run tags and do not overwrite earlier releases. A failed upload leaves a draft. Recovery assets are also kept as workflow artifacts for seven days. Partial collections are published as prereleases; collection failures still fail the workflow after preserving the checkpoint. Data releases are not marked GitHub's “latest” software release.
