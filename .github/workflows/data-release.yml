@@ -1,0 +1,76 @@
+name: Data release
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: Allow the first baseline when no published data checkpoint exists
+        type: boolean
+        default: false
+      reconcile:
+        description: Refetch every eligible entity when a new API load is observed
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: brreg-data-release
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.event_name == 'workflow_dispatch' || vars.BRREG_DATA_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      - name: Restore latest published data checkpoint
+        env:
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+        run: |
+          args=()
+          if [ "$BOOTSTRAP" = true ]; then args+=(--bootstrap); fi
+          uv run python scripts/release.py resume --directory data/previous "${args[@]}"
+          rm -rf data/previous
+      - name: Collect with a bounded runtime
+        id: collect
+        env:
+          RECONCILE: ${{ inputs.reconcile }}
+        run: |
+          args=()
+          if [ "$RECONCILE" = true ]; then args+=(--reconcile); fi
+          set +e
+          uv run brreg-fetch collect --workers 4 --max-seconds 14400 --report data/run.json "${args[@]}"
+          result=$?
+          set -e
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          test -f data/checkpoint.sqlite3
+      - name: Export release files
+        run: uv run brreg-fetch export --output dist/data
+      - name: Preserve recovery assets if publication fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: brreg-data-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/data/
+          compression-level: 0
+          retention-days: 7
+      - name: Publish data release
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          tag="data-$(date -u +%Y%m%dT%H%M%SZ)-${RUN_ID}-${RUN_ATTEMPT}"
+          uv run python scripts/release.py publish --directory dist/data --tag "$tag" --target "$TARGET_SHA"
+      - name: Surface collection errors after checkpoint publication
+        env:
+          COLLECT_RESULT: ${{ steps.collect.outputs.result }}
+        run: test "$COLLECT_RESULT" = 0

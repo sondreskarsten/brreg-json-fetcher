@@ -1,0 +1,37 @@
+name: Software release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run ruff format --check . && uv run pytest -q
+      - name: Check tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          uv run python - <<'PY'
+          import os, tomllib
+          from brreg_fetcher import __version__
+          with open('pyproject.toml', 'rb') as source:
+              version = tomllib.load(source)['project']['version']
+          assert os.environ['RELEASE_TAG'] == 'v' + version == 'v' + __version__
+          PY
+      - run: uv build
+      - name: Publish software assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          (cd dist && sha256sum *.whl *.tar.gz > SHA256SUMS)
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --draft --generate-notes
+          gh release edit "$RELEASE_TAG" --draft=false --latest

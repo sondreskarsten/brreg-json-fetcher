@@ -7,3 +7,8 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+data/
+dist/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
