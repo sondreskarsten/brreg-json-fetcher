@@ -116,13 +116,29 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     try {
       let response = null;
       let route = null;
+      let text = "";
       const failures = [];
       for (const candidate of ROUTES) {
         try {
-          response = await fetch(candidate.url(API + orgnr), {
+          const reply = await fetch(candidate.url(API + orgnr), {
             headers: {Accept: "application/json"},
             signal: AbortSignal.timeout(20000),
           });
+          const body = await reply.text();
+          let parsed;
+          try { parsed = JSON.parse(body); } catch (_) {}
+          const accounts = reply.ok && Array.isArray(parsed) && parsed.every(f =>
+            f && typeof f === "object" && f.virksomhet?.organisasjonsnummer === orgnr && Number.isInteger(f.id));
+          const sourceError = reply.status === 500 && parsed?.status === 500 &&
+            typeof parsed.message === "string" &&
+            parsed.path === "/regnskapsregisteret/regnskap/" + orgnr;
+          const directAbsence = candidate.name === "direct" && reply.status === 404 && !body.trim();
+          if (!accounts && !sourceError && !directAbsence) {
+            const detail = typeof parsed?.error === "string" ? parsed.error : "Not an accounts API response";
+            throw new Error(`HTTP ${reply.status}: ${detail}`);
+          }
+          response = reply;
+          text = body;
           route = candidate.name;
           break;
         } catch (error) {
@@ -130,7 +146,6 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
         }
       }
       if (!response) throw new Error(failures.join("; "));
-      const text = await response.text();
       let pretty = text;
       try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (_) {}
       result.textContent = pretty;
