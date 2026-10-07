@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BRREG accounts</title>
-<meta name="description" content="Download the monthly Norwegian AS/ASA annual-accounts dataset, or look up one organisation's accounts JSON using a public CORS proxy when needed.">
+<meta name="description" content="Download the monthly Norwegian AS/ASA annual-accounts dataset, or look up one organisation's accounts response using public proxies when needed.">
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5b5b5b;--line:#d9d9d9;--accent:#1f4e79;--panel:#f5f5f5;--err:#9b1c1c}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141414;--fg:#ececec;--muted:#a3a3a3;--line:#3a3a3a;--accent:#8fbbe8;--panel:#1f1f1f;--err:#f08080}}
@@ -42,13 +42,14 @@ ul{padding-left:20px}
 <p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
 <h2>Look up one organisation</h2>
-<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then Jina Reader and AllOrigins if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route and response format are shown below. Jina Reader reformats the upstream response and may return XML instead of JSON; its output is not a byte-exact source copy. This site has no server of its own.</p>
+<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then Jina Reader and AllOrigins if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route and response format are shown below. Jina Reader reformats the upstream response and may return XML instead of JSON. Its HTML processing can change XML field nesting, so use the monthly CSV or the original API response for structured analysis. This site has no server of its own.</p>
 <form id="lookup">
 <input id="orgnr" name="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
 <button type="submit" id="fetch">Fetch</button>
 <button type="button" id="download" class="secondary hidden">Download response</button>
 </form>
 <p id="status" class="status muted"></p>
+<p><a id="source-link" class="hidden" target="_blank" rel="noopener noreferrer">Open the original BRREG response</a></p>
 <pre id="result" class="hidden"></pre>
 <p class="muted">The default response holds up to three fiscal years per type, KONSERN before SELSKAP. <code>404</code> means no accounts are available through this endpoint. A <code>500</code> with an unsupported-plan message covers plans such as BANK, IDEELL and PENSJ.</p>
 </main>
@@ -71,6 +72,7 @@ ul{padding-left:20px}
   let lastText = "";
   let lastOrgnr = "";
   let lastFormat = "json";
+  let lastViaReader = false;
 
   const bytes = n => n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(1) + " MB" : (n / 1e3).toFixed(0) + " kB";
 
@@ -109,6 +111,9 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       show("Enter a nine-digit organisasjonsnummer.", true);
       return;
     }
+    const sourceLink = document.getElementById("source-link");
+    sourceLink.href = API + orgnr;
+    sourceLink.classList.remove("hidden");
     fetchButton.disabled = true;
     downloadButton.classList.add("hidden");
     result.classList.add("hidden");
@@ -175,7 +180,8 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       lastText = text;
       lastOrgnr = orgnr;
       lastFormat = format;
-      downloadButton.textContent = `Download ${format.toUpperCase()}`;
+      lastViaReader = route === "Jina Reader";
+      downloadButton.textContent = `Download ${lastViaReader ? "reader " : ""}${format.toUpperCase()}`;
       if (response.ok) {
         const count = filingCount === null ? "" : ` ${filingCount} filing${filingCount === 1 ? "" : "s"}.`;
         show(`HTTP ${response.status} via ${route}.${count} ${format.toUpperCase()}${route === "Jina Reader" ? " (reader-reformatted response)" : ""}.`);
@@ -198,7 +204,7 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `regnskap-${lastOrgnr}.${lastFormat}`;
+    a.download = `regnskap-${lastOrgnr}${lastViaReader ? "-reader" : ""}.${lastFormat}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
