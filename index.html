@@ -11,7 +11,7 @@
 :root[data-theme="dark"]{--bg:#141414;--fg:#ececec;--muted:#a3a3a3;--line:#3a3a3a;--accent:#8fbbe8;--panel:#1f1f1f;--err:#f08080}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:860px;margin:0 auto;padding:32px 16px 64px}
+main{max-width:1040px;margin:0 auto;padding:32px 16px 64px}
 h1{font-size:1.6rem;margin:0 0 4px}
 h2{font-size:1.15rem;margin:36px 0 8px}
 p{margin:8px 0}
@@ -29,41 +29,57 @@ table{border-collapse:collapse;width:100%;font-size:.95rem}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 ul{padding-left:20px}
 .hidden{display:none}
+
+:root{--accent:#007b80;--panel:#f4f8f8}
+.statement{margin:28px 0 36px}.statement h3{font-size:1rem;color:var(--accent);margin-bottom:10px}
+.table-scroll{overflow-x:auto}.statement-table{table-layout:auto;min-width:460px;font-size:.9rem}
+.statement-table th:first-child{width:30%;min-width:180px}.statement-table thead th{background:var(--panel);font-weight:500;padding:12px}
+.statement-table thead th:not(:first-child),.statement-table td{text-align:right;min-width:155px}
+.statement-table tbody th{font-weight:400}.statement-table td{font-variant-numeric:tabular-nums;white-space:nowrap}
+.statement-table tr:not(.section-row):nth-child(even){background:var(--panel)}
+.statement-table th,.statement-table td{padding:9px 10px;border-bottom:1px solid #e7eeee}
+.statement-table .section-row th{font-weight:650;padding-top:20px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.account-info{color:var(--muted);font-size:.8rem;white-space:normal!important;overflow-wrap:anywhere}
+.all-fields, .source-details{margin:24px 0;border-bottom:1px solid var(--line);padding:14px 0}
+summary{cursor:pointer;color:var(--accent);font-weight:600}.source-table{font-size:.78rem}.source-table td{white-space:nowrap}.source-table th{font-weight:500}
+#parsed-warning{border-left:3px solid var(--accent);padding-left:10px;font-size:.8rem}
+#lookup input{max-width:360px}#parsed h2{margin-top:28px}.intro{max-width:760px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:#1b292b;--accent:#7bd4d5}}
+@media(max-width:600px){main{padding:20px 14px}h1{font-size:1.4rem}.statement-table{font-size:.82rem}.statement-table th:first-child{min-width:145px}.statement-table td{min-width:135px}}
 </style>
 </head>
 <body>
 <main>
-<h1>BRREG annual accounts</h1>
+<h1>Årsregnskap</h1>
 <p class="muted">Unofficial mirror maintained by <a href="https://github.com/sondreskarsten">sondreskarsten</a>. Not operated, approved or endorsed by Brønnøysundregistrene. Inneholder data under <a href="https://data.norge.no/nlod/no/2.0">NLOD 2.0</a> tilgjengeliggjort av Brønnøysundregistrene.</p>
 
-<h2>Download the monthly dataset</h2>
+<h2>Finn regnskap</h2>
+<p class="intro">Nøkkeltall fra Regnskapsregisteret. Skriv inn organisasjonsnummeret for å sammenligne år og laste ned regnskapene som CSV.</p>
+<details class="source-details"><summary>Om datakilden og offentlige proxyer</summary><p>Oppslaget forsøker BRREG direkte, deretter Jina Reader og AllOrigins. Proxytilbyderen kan se organisasjonsnummer og svar. Jina kan endre XML-feltnavn og nesting; dette markeres i visningen og nedlastingene. Ingen oppslag startes fra lenker.</p></details>
+<form id="lookup">
+<input id="orgnr" inputmode="numeric" autocomplete="off" aria-label="Organisasjonsnummer" placeholder="Organisasjonsnummer, 9 sifre" required>
+<button type="submit" id="fetch">Hent regnskap</button>
+<button type="button" id="download-csv" class="secondary hidden">Last ned CSV</button>
+<button type="button" id="download" class="secondary hidden">Download response</button>
+</form>
+<p id="status" class="status muted"></p>
+<p><a id="source-link" class="hidden" target="_blank" rel="noopener noreferrer">Åpne kilden</a></p>
+<section id="parsed" class="hidden">
+<h2>Regnskap</h2>
+<p class="muted">Beløp i oppgitt valuta, uten skalering. — betyr ikke oppgitt. CSV har ett regnskap per rad, med organisasjonsnummer og journalnummer gjentatt.</p>
+<p id="parsed-warning" class="muted"></p>
+<div id="statements"></div>
+</section>
+<details class="source-details" id="raw-details"><summary>Originalt mottatt svar</summary><pre id="result" class="hidden"></pre></details>
+<details class="source-details"><summary>Last ned månedsdatasettet</summary>
 <p>Every month all Norwegian AS and ASA entities with a filed annual account are fetched once and published as a <code>data-YYYY-MM</code> release. Use the finished dataset instead of calling the API for each company.</p>
 <div id="releases"><p class="muted">Looking up the latest data release…</p></div>
 <p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
-<h2>Look up one organisation</h2>
-<p>Enter an organisation number and select Fetch to see the parsed filings and download CSV. Opening a link never starts a lookup.</p>
-<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then Jina Reader and AllOrigins if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route and response format are shown below. Jina Reader reformats the upstream response and may return XML instead of JSON. Its HTML processing can change XML field nesting, so use the monthly CSV or the original API response for structured analysis. This site has no server of its own.</p>
-<form id="lookup">
-<input id="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
-<button type="submit" id="fetch">Fetch</button>
-<button type="button" id="download-csv" class="secondary hidden">Download CSV</button>
-<button type="button" id="download" class="secondary hidden">Download response</button>
-</form>
-<p id="status" class="status muted"></p>
-<p><a id="source-link" class="hidden" target="_blank" rel="noopener noreferrer">Open the original BRREG response</a></p>
-<section id="parsed" class="hidden">
-<h3>Filings</h3>
-<p class="muted">One row per filing. Amounts are in the stated currency, without scaling. — means not supplied. CSV includes all returned field paths and repeats the organisation number and journal number for each filing.</p>
-<p id="parsed-warning" class="muted"></p>
-<div style="overflow-x:auto"><table><thead><tr><th>Organisation</th><th>Type</th><th>Period end</th><th>Filing ID</th><th>Journal</th><th>Currency</th><th>Operating income</th><th>Annual result</th><th>Equity</th></tr></thead><tbody id="filing-rows"></tbody></table></div>
-<details><summary>All parsed fields</summary><pre id="parsed-fields"></pre></details>
-</section>
-<h3>Returned response</h3>
-<pre id="result" class="hidden"></pre>
-<p class="muted">The default response holds up to three fiscal years per type, KONSERN before SELSKAP. <code>404</code> means no accounts are available through this endpoint. A <code>500</code> with an unsupported-plan message covers plans such as BANK, IDEELL and PENSJ.</p>
+</details>
+<p class="muted">Visning oppdatert 7. oktober 2026 · Regnskapsoversikt og CSV</p>
 </main>
-<script src="accounts.js?v=20261007-2"></script>
+<script src="accounts.js?v=20261007-statements"></script>
 <script>
 (() => {
   const REPO = "sondreskarsten/brreg-json-fetcher";
@@ -205,28 +221,15 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       lastOrgnr = orgnr;
       lastFormat = format;
       lastViaReader = route === "Jina Reader";
-      downloadButton.textContent = `Download ${lastViaReader ? "reader " : ""}${format.toUpperCase()}`;
+      downloadButton.textContent = `Last ned ${format.toUpperCase()}${lastViaReader ? " (Reader)" : ""}`;
       if (response.ok) {
         const count = filingCount === null ? "" : ` ${filingCount} filing${filingCount === 1 ? "" : "s"}.`;
         show(`HTTP ${response.status} via ${route}.${count} ${format.toUpperCase()}${route === "Jina Reader" ? " (reader-reformatted response)" : ""}.`);
         lastRows = AccountData.records(filings, orgnr, route, format, new Date().toISOString());
-        const tbody = document.getElementById("filing-rows");
-        tbody.replaceChildren();
-        const paths = ["virksomhet.organisasjonsnummer", "regnskapstype", "regnskapsperiode.tilDato", "id", "journalnr", "valuta", "resultatregnskapResultat.driftsresultat.driftsinntekter.sumDriftsinntekter", "resultatregnskapResultat.aarsresultat", "egenkapitalGjeld.egenkapital.sumEgenkapital"];
-        for (const filing of filings) {
-          const tr = document.createElement("tr");
-          for (const path of paths) {
-            const td = document.createElement("td");
-            const value = AccountData.get(filing, path);
-            td.textContent = value == null || value === "" ? "—" : String(value);
-            tr.appendChild(td);
-          }
-          tbody.appendChild(tr);
-        }
-        document.getElementById("parsed-fields").textContent = JSON.stringify(filings, null, 2);
+        AccountData.render(document.getElementById("statements"), filings);
         document.getElementById("parsed-warning").textContent = lastViaReader
-          ? "Reader-derived preview and CSV: XML tag casing and field nesting may differ from original BRREG JSON. Returned paths and values are preserved without guessing corrections. Use the monthly CSV or original API for authoritative field structure."
-          : "CSV preserves all returned fields. Nested fields use dotted column names; missing values are blank. Formula-like text is prefixed with an apostrophe for spreadsheet safety.";
+          ? "Hentet via Jina Reader. XML-strukturen kan være endret av proxyen. Kildefelt og CSV beholdes som mottatt; se originalkilden eller månedsdatasettet ved videre analyse."
+          : "CSV inneholder alle kildefelt. Manglende verdier er blanke; formellignende tekst sikres for regneark.";
         parsedPanel.classList.remove("hidden");
         if (filings.length) csvButton.classList.remove("hidden");
         downloadButton.classList.remove("hidden");
