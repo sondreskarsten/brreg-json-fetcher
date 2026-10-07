@@ -59,9 +59,9 @@ Downstream use must retain the source attribution and licence link above and ide
 GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}
 ```
 
-directly and shows the JSON exactly as Brønnøysundregistrene returns it, with a button to save it as a file. No request passes through this repository or any server of its own; the page only renders what the API delivers. It also reads the GitHub releases API to list the latest completed monthly dataset.
+using a direct request first, then the public CORS proxies api.allorigins.win, corsproxy.io and thingproxy.freeboard.io if a network/CORS failure prevents direct access. Each attempt has a 20-second timeout. The page displays the response body and identifies the route used, with a button to save the response. Proxy providers can see the requested organisation number and response; the page has no server of its own. It also reads the GitHub releases API to list the latest completed monthly dataset.
 
-The page depends on the accounts API allowing cross-origin requests from the browser. If every request fails with a network error while the API is reachable elsewhere, that permission has been withdrawn and the page cannot work around it.
+Public proxy availability is not guaranteed. The page reports HTTP errors with the route used, and reports failed routes if none can be reached. The monthly downloadable dataset remains available independently of the live lookup.
 
 ## How the data is collected
 
