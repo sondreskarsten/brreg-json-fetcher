@@ -42,9 +42,10 @@ ul{padding-left:20px}
 <p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
 <h2>Look up one organisation</h2>
+<p>Enter an organisation number and select Fetch to see the parsed filings and download CSV. Opening a link never starts a lookup.</p>
 <p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then Jina Reader and AllOrigins if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route and response format are shown below. Jina Reader reformats the upstream response and may return XML instead of JSON. Its HTML processing can change XML field nesting, so use the monthly CSV or the original API response for structured analysis. This site has no server of its own.</p>
 <form id="lookup">
-<input id="orgnr" name="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
+<input id="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
 <button type="submit" id="fetch">Fetch</button>
 <button type="button" id="download-csv" class="secondary hidden">Download CSV</button>
 <button type="button" id="download" class="secondary hidden">Download response</button>
@@ -62,7 +63,7 @@ ul{padding-left:20px}
 <pre id="result" class="hidden"></pre>
 <p class="muted">The default response holds up to three fiscal years per type, KONSERN before SELSKAP. <code>404</code> means no accounts are available through this endpoint. A <code>500</code> with an unsupported-plan message covers plans such as BANK, IDEELL and PENSJ.</p>
 </main>
-<script src="accounts.js"></script>
+<script src="accounts.js?v=20261007-2"></script>
 <script>
 (() => {
   const REPO = "sondreskarsten/brreg-json-fetcher";
@@ -119,6 +120,7 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (fetchButton.disabled) return;
     const orgnr = input.value.replace(/\s+/g, "");
     if (!/^\d{9}$/.test(orgnr)) {
       show("Enter a nine-digit organisasjonsnummer.", true);
@@ -265,10 +267,11 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     URL.revokeObjectURL(url);
   });
 
-  const initial = new URLSearchParams(location.search).get("orgnr");
-  if (initial) {
-    input.value = initial;
-    form.requestSubmit();
+  // Old links must not initiate lookups or prefill an organisation number.
+  const pageURL = new URL(location.href);
+  if (pageURL.searchParams.has("orgnr")) {
+    pageURL.searchParams.delete("orgnr");
+    history.replaceState(null, "", pageURL.pathname + pageURL.search + pageURL.hash);
   }
   loadReleases();
 })();
