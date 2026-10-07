@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Reorient the README toward downloading the completed monthly dataset.
-- Link the `gh-pages` lookup site, which lists the latest data release and fetches one organisation's accounts JSON from the BRREG API in the browser.
+- Link the `gh-pages` lookup site, which lists the latest data release and offers manually initiated account lookups, parsed previews and per-filing CSV downloads, with public-proxy attribution and response-format caveats.
 
 ## 0.4.1
 

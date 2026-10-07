@@ -12,7 +12,7 @@ Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en
 
 Completed months are published on the [releases page](https://github.com/sondreskarsten/brreg-json-fetcher/releases) with the tag **`data-YYYY-MM`**. Pick the newest `data-` tag; `checkpoint-` prereleases are recovery state for a collection still in progress, and `v*` releases are the collector software. The lookup page lists the latest completed month and its assets automatically.
 
-Direct asset URLs follow this pattern:
+Direct asset URLs follow this pattern (large CSV datasets use numbered filenames listed in the manifest):
 
 ```text
 https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY-MM/accounts.csv
@@ -21,9 +21,23 @@ https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY
 ```
 
 ```bash
-TAG=data-2026-10
-for f in accounts.csv observations.csv manifest.json DATA_NOTICE.md SHA256SUMS; do
-  curl -LO "https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/$TAG/$f"
+TAG=data-2026-10  # Choose an existing completed data release.
+BASE="https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/$TAG"
+curl -fSLO "$BASE/manifest.json"
+# The manifest names every independently readable CSV, including split files.
+python3 - <<'PYCSV' > csv-files.txt
+import json
+with open("manifest.json") as source:
+    dataset = json.load(source)["dataset"]
+for table in ("accounts", "observations"):
+    for name in dataset[table]["files"]:
+        print(name)
+PYCSV
+while IFS= read -r file; do
+  curl -fSLO "$BASE/$file" || exit 1
+done < csv-files.txt
+for file in DATA_NOTICE.md SHA256SUMS; do
+  curl -fSLO "$BASE/$file" || exit 1
 done
 sha256sum -c --ignore-missing SHA256SUMS
 ```
@@ -53,7 +67,7 @@ Downstream use must retain the source attribution and licence link above and ide
 
 ## Look up one organisation
 
-[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer, or open `?orgnr=923609016`, and the browser calls
+[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
 
 ```text
 GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}
