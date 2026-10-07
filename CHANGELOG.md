@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Reorient the README toward downloading the completed monthly dataset.
-- Add a GitHub Pages site that lists the latest data release and fetches one organisation's accounts JSON from the BRREG API in the browser.
+- Link the `gh-pages` lookup site, which lists the latest data release and fetches one organisation's accounts JSON from the BRREG API in the browser.
 
 ## 0.4.1
 

@@ -53,7 +53,7 @@ Downstream use must retain the source attribution and licence link above and ide
 
 ## Look up one organisation
 
-[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from [`docs/`](docs/). Enter a nine-digit organisasjonsnummer, or open `?orgnr=923609016`, and the browser calls
+[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer, or open `?orgnr=923609016`, and the browser calls
 
 ```text
 GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}
