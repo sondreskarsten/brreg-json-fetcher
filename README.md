@@ -59,9 +59,11 @@ Downstream use must retain the source attribution and licence link above and ide
 GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}
 ```
 
-using a direct request first, then the public CORS proxies api.allorigins.win, corsproxy.io and thingproxy.freeboard.io if a network/CORS failure prevents direct access. Each attempt has a 20-second timeout. The page displays the response body and identifies the route used, with a button to save the response. Proxy providers can see the requested organisation number and response; the page has no server of its own. It also reads the GitHub releases API to list the latest completed monthly dataset.
+using a direct request first, then **Jina Reader** and **AllOrigins** if direct access fails. Each attempt has a 30-second timeout, and proxy failures or unexpected response formats are skipped. The page validates organisation identity, displays the response format and route, and provides a download labelled JSON or XML. Proxy providers can see the requested organisation number and response; this page has no server of its own and does not use a private proxy or API key.
 
-Public proxy availability is not guaranteed. The page reports HTTP errors with the route used, and reports failed routes if none can be reached. The monthly downloadable dataset remains available independently of the live lookup.
+Jina Reader may return reformatted XML rather than original JSON. Its HTML processing can change XML field nesting, so reader downloads are explicitly labelled with a `-reader` filename. Use the monthly CSV or the linked original BRREG response for structured analysis. The monthly collector requests JSON directly and does not use these public proxies.
+
+A live Chromium test of organisation `964118191` returned six filings through Jina Reader and downloaded labelled XML. Public-proxy availability is not guaranteed; failures remain visible. The page also lists the latest completed monthly dataset through GitHub's releases API.
 
 ## How the data is collected
 
