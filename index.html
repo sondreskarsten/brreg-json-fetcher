@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BRREG accounts</title>
-<meta name="description" content="Download the monthly Norwegian AS/ASA annual-accounts dataset, or fetch one organisation's accounts JSON directly from Brønnøysundregistrene in the browser.">
+<meta name="description" content="Download the monthly Norwegian AS/ASA annual-accounts dataset, or look up one organisation's accounts JSON using a public CORS proxy when needed.">
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5b5b5b;--line:#d9d9d9;--accent:#1f4e79;--panel:#f5f5f5;--err:#9b1c1c}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141414;--fg:#ececec;--muted:#a3a3a3;--line:#3a3a3a;--accent:#8fbbe8;--panel:#1f1f1f;--err:#f08080}}
@@ -42,7 +42,7 @@ ul{padding-left:20px}
 <p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
 <h2>Look up one organisation</h2>
-<p>Fetches <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code> directly from your browser and returns the JSON as delivered by Brønnøysundregistrene. Nothing passes through this site.</p>
+<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then public CORS proxies if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route used is shown below; this site has no server of its own.</p>
 <form id="lookup">
 <input id="orgnr" name="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
 <button type="submit" id="fetch">Fetch</button>
@@ -56,6 +56,12 @@ ul{padding-left:20px}
 (() => {
   const REPO = "sondreskarsten/brreg-json-fetcher";
   const API = "https://data.brreg.no/regnskapsregisteret/regnskap/";
+  const ROUTES = [
+    {name: "direct", url: u => u},
+    {name: "api.allorigins.win", url: u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)},
+    {name: "corsproxy.io", url: u => "https://corsproxy.io/?url=" + encodeURIComponent(u)},
+    {name: "thingproxy.freeboard.io", url: u => "https://thingproxy.freeboard.io/fetch/" + u},
+  ];
   const releases = document.getElementById("releases");
   const form = document.getElementById("lookup");
   const input = document.getElementById("orgnr");
@@ -108,7 +114,22 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     result.classList.add("hidden");
     show(`Fetching ${orgnr}…`);
     try {
-      const response = await fetch(API + orgnr, {headers: {Accept: "application/json"}});
+      let response = null;
+      let route = null;
+      const failures = [];
+      for (const candidate of ROUTES) {
+        try {
+          response = await fetch(candidate.url(API + orgnr), {
+            headers: {Accept: "application/json"},
+            signal: AbortSignal.timeout(20000),
+          });
+          route = candidate.name;
+          break;
+        } catch (error) {
+          failures.push(`${candidate.name}: ${error.message}`);
+        }
+      }
+      if (!response) throw new Error(failures.join("; "));
       const text = await response.text();
       let pretty = text;
       try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (_) {}
@@ -119,16 +140,16 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       if (response.ok) {
         let count = "";
         try { const parsed = JSON.parse(text); if (Array.isArray(parsed)) count = ` ${parsed.length} filing${parsed.length === 1 ? "" : "s"}.`; } catch (_) {}
-        show(`HTTP ${response.status}.${count}`);
+        show(`HTTP ${response.status} via ${route}.${count}`);
         downloadButton.classList.remove("hidden");
       } else if (response.status === 404) {
-        show("HTTP 404: no accounts available through this endpoint.", true);
+        show(`HTTP 404 via ${route}: no accounts available through this endpoint.`, true);
       } else {
-        show(`HTTP ${response.status}. Response body shown below.`, true);
+        show(`HTTP ${response.status} via ${route}. Response body shown below.`, true);
         downloadButton.classList.remove("hidden");
       }
     } catch (error) {
-      show(`Request failed: ${error.message}. If this persists in every browser, the API may not allow cross-origin requests from this site.`, true);
+      show(`Every route failed or its response could not be read. ${error.message}`, true);
     } finally {
       fetchButton.disabled = false;
     }
