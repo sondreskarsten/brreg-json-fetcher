@@ -42,11 +42,11 @@ ul{padding-left:20px}
 <p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
 <h2>Look up one organisation</h2>
-<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then public CORS proxies if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route used is shown below; this site has no server of its own.</p>
+<p>Looks up <code>https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}</code>. The browser tries a direct request first, then Jina Reader and AllOrigins if direct cross-origin access fails. Proxy providers can see the organisation number requested and the response. The route and response format are shown below. Jina Reader reformats the upstream response and may return XML instead of JSON; its output is not a byte-exact source copy. This site has no server of its own.</p>
 <form id="lookup">
 <input id="orgnr" name="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
 <button type="submit" id="fetch">Fetch</button>
-<button type="button" id="download" class="secondary hidden">Download JSON</button>
+<button type="button" id="download" class="secondary hidden">Download response</button>
 </form>
 <p id="status" class="status muted"></p>
 <pre id="result" class="hidden"></pre>
@@ -57,10 +57,9 @@ ul{padding-left:20px}
   const REPO = "sondreskarsten/brreg-json-fetcher";
   const API = "https://data.brreg.no/regnskapsregisteret/regnskap/";
   const ROUTES = [
-    {name: "direct", url: u => u},
-    {name: "api.allorigins.win", url: u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)},
-    {name: "corsproxy.io", url: u => "https://corsproxy.io/?url=" + encodeURIComponent(u)},
-    {name: "thingproxy.freeboard.io", url: u => "https://thingproxy.freeboard.io/fetch/" + u},
+    {name: "direct", url: u => u, headers: {Accept: "application/json"}},
+    {name: "Jina Reader", url: u => "https://r.jina.ai/" + u, headers: {"X-Return-Format": "html"}},
+    {name: "AllOrigins", url: u => "https://api.allorigins.win/raw?disableCache=true&url=" + encodeURIComponent(u), headers: {Accept: "application/json"}},
   ];
   const releases = document.getElementById("releases");
   const form = document.getElementById("lookup");
@@ -71,6 +70,7 @@ ul{padding-left:20px}
   const result = document.getElementById("result");
   let lastText = "";
   let lastOrgnr = "";
+  let lastFormat = "json";
 
   const bytes = n => n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(1) + " MB" : (n / 1e3).toFixed(0) + " kB";
 
@@ -117,28 +117,50 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       let response = null;
       let route = null;
       let text = "";
+      let format = "json";
+      let filingCount = null;
       const failures = [];
       for (const candidate of ROUTES) {
         try {
           const reply = await fetch(candidate.url(API + orgnr), {
-            headers: {Accept: "application/json"},
-            signal: AbortSignal.timeout(20000),
+            headers: candidate.headers,
+            credentials: "omit",
+            referrerPolicy: "no-referrer",
+            signal: AbortSignal.timeout(30000),
           });
-          const body = await reply.text();
+          let body = await reply.text();
+          // Reader responses may wrap JSON in an HTML <pre> element.
+          if (/^\s*</.test(body)) {
+            const pre = new DOMParser().parseFromString(body, "text/html").querySelector("pre");
+            if (pre && /^\s*[\[{]/.test(pre.textContent)) body = pre.textContent;
+          }
           let parsed;
           try { parsed = JSON.parse(body); } catch (_) {}
           const accounts = reply.ok && Array.isArray(parsed) && parsed.every(f =>
             f && typeof f === "object" && f.virksomhet?.organisasjonsnummer === orgnr && Number.isInteger(f.id));
+          let xmlCount = null;
+          if (reply.ok && /^\s*</.test(body)) {
+            const doc = new DOMParser().parseFromString(body, "application/xml");
+            const root = doc.documentElement;
+            if (!doc.querySelector("parsererror") && root.localName.toLowerCase() === "arraylist") {
+              const items = [...root.children].filter(el => el.localName.toLowerCase() === "item");
+              const child = (el, name) => [...el.children].find(c => c.localName.toLowerCase() === name);
+              if (items.every(item => child(child(item, "virksomhet") || doc.createElement("empty"), "organisasjonsnummer")?.textContent.trim() === orgnr &&
+                  /^\d+$/.test(child(item, "id")?.textContent.trim() || "") && child(item, "regnskapsperiode"))) xmlCount = items.length;
+            }
+          }
           const sourceError = reply.status === 500 && parsed?.status === 500 &&
             typeof parsed.message === "string" &&
             parsed.path === "/regnskapsregisteret/regnskap/" + orgnr;
           const directAbsence = candidate.name === "direct" && reply.status === 404 && !body.trim();
-          if (!accounts && !sourceError && !directAbsence) {
+          if (!accounts && xmlCount === null && !sourceError && !directAbsence) {
             const detail = typeof parsed?.error === "string" ? parsed.error : "Not an accounts API response";
             throw new Error(`HTTP ${reply.status}: ${detail}`);
           }
           response = reply;
           text = body;
+          format = xmlCount !== null ? "xml" : "json";
+          filingCount = accounts ? parsed.length : xmlCount;
           route = candidate.name;
           break;
         } catch (error) {
@@ -152,10 +174,11 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       result.classList.remove("hidden");
       lastText = text;
       lastOrgnr = orgnr;
+      lastFormat = format;
+      downloadButton.textContent = `Download ${format.toUpperCase()}`;
       if (response.ok) {
-        let count = "";
-        try { const parsed = JSON.parse(text); if (Array.isArray(parsed)) count = ` ${parsed.length} filing${parsed.length === 1 ? "" : "s"}.`; } catch (_) {}
-        show(`HTTP ${response.status} via ${route}.${count}`);
+        const count = filingCount === null ? "" : ` ${filingCount} filing${filingCount === 1 ? "" : "s"}.`;
+        show(`HTTP ${response.status} via ${route}.${count} ${format.toUpperCase()}${route === "Jina Reader" ? " (reader-reformatted response)" : ""}.`);
         downloadButton.classList.remove("hidden");
       } else if (response.status === 404) {
         show(`HTTP 404 via ${route}: no accounts available through this endpoint.`, true);
@@ -171,11 +194,11 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
   });
 
   downloadButton.addEventListener("click", () => {
-    const blob = new Blob([lastText], {type: "application/json"});
+    const blob = new Blob([lastText], {type: lastFormat === "xml" ? "application/xml" : "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `regnskap-${lastOrgnr}.json`;
+    a.download = `regnskap-${lastOrgnr}.${lastFormat}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
