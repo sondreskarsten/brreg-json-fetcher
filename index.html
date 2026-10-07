@@ -46,13 +46,23 @@ ul{padding-left:20px}
 <form id="lookup">
 <input id="orgnr" name="orgnr" inputmode="numeric" autocomplete="off" placeholder="Organisasjonsnummer, 9 digits" required>
 <button type="submit" id="fetch">Fetch</button>
+<button type="button" id="download-csv" class="secondary hidden">Download CSV</button>
 <button type="button" id="download" class="secondary hidden">Download response</button>
 </form>
 <p id="status" class="status muted"></p>
 <p><a id="source-link" class="hidden" target="_blank" rel="noopener noreferrer">Open the original BRREG response</a></p>
+<section id="parsed" class="hidden">
+<h3>Filings</h3>
+<p class="muted">One row per filing. Amounts are in the stated currency, without scaling. — means not supplied. CSV includes all returned field paths and repeats the organisation number and journal number for each filing.</p>
+<p id="parsed-warning" class="muted"></p>
+<div style="overflow-x:auto"><table><thead><tr><th>Organisation</th><th>Type</th><th>Period end</th><th>Filing ID</th><th>Journal</th><th>Currency</th><th>Operating income</th><th>Annual result</th><th>Equity</th></tr></thead><tbody id="filing-rows"></tbody></table></div>
+<details><summary>All parsed fields</summary><pre id="parsed-fields"></pre></details>
+</section>
+<h3>Returned response</h3>
 <pre id="result" class="hidden"></pre>
 <p class="muted">The default response holds up to three fiscal years per type, KONSERN before SELSKAP. <code>404</code> means no accounts are available through this endpoint. A <code>500</code> with an unsupported-plan message covers plans such as BANK, IDEELL and PENSJ.</p>
 </main>
+<script src="accounts.js"></script>
 <script>
 (() => {
   const REPO = "sondreskarsten/brreg-json-fetcher";
@@ -69,6 +79,9 @@ ul{padding-left:20px}
   const downloadButton = document.getElementById("download");
   const status = document.getElementById("status");
   const result = document.getElementById("result");
+  const csvButton = document.getElementById("download-csv");
+  const parsedPanel = document.getElementById("parsed");
+  let lastRows = [];
   let lastText = "";
   let lastOrgnr = "";
   let lastFormat = "json";
@@ -114,6 +127,9 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     const sourceLink = document.getElementById("source-link");
     sourceLink.href = API + orgnr;
     sourceLink.classList.remove("hidden");
+    lastRows = [];
+    csvButton.classList.add("hidden");
+    parsedPanel.classList.add("hidden");
     fetchButton.disabled = true;
     downloadButton.classList.add("hidden");
     result.classList.add("hidden");
@@ -124,6 +140,7 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       let text = "";
       let format = "json";
       let filingCount = null;
+      let filings = [];
       const failures = [];
       for (const candidate of ROUTES) {
         try {
@@ -144,6 +161,7 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
           const accounts = reply.ok && Array.isArray(parsed) && parsed.every(f =>
             f && typeof f === "object" && f.virksomhet?.organisasjonsnummer === orgnr && Number.isInteger(f.id));
           let xmlCount = null;
+          let xmlFilings = [];
           if (reply.ok && /^\s*</.test(body)) {
             const doc = new DOMParser().parseFromString(body, "application/xml");
             const root = doc.documentElement;
@@ -151,7 +169,10 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
               const items = [...root.children].filter(el => el.localName.toLowerCase() === "item");
               const child = (el, name) => [...el.children].find(c => c.localName.toLowerCase() === name);
               if (items.every(item => child(child(item, "virksomhet") || doc.createElement("empty"), "organisasjonsnummer")?.textContent.trim() === orgnr &&
-                  /^\d+$/.test(child(item, "id")?.textContent.trim() || "") && child(item, "regnskapsperiode"))) xmlCount = items.length;
+                  /^\d+$/.test(child(item, "id")?.textContent.trim() || "") && child(item, "regnskapsperiode"))) {
+                xmlCount = items.length;
+                xmlFilings = items.map(AccountData.xmlObject);
+              }
             }
           }
           const sourceError = reply.status === 500 && parsed?.status === 500 &&
@@ -166,6 +187,7 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
           text = body;
           format = xmlCount !== null ? "xml" : "json";
           filingCount = accounts ? parsed.length : xmlCount;
+          filings = accounts ? parsed : xmlFilings;
           route = candidate.name;
           break;
         } catch (error) {
@@ -185,6 +207,26 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
       if (response.ok) {
         const count = filingCount === null ? "" : ` ${filingCount} filing${filingCount === 1 ? "" : "s"}.`;
         show(`HTTP ${response.status} via ${route}.${count} ${format.toUpperCase()}${route === "Jina Reader" ? " (reader-reformatted response)" : ""}.`);
+        lastRows = AccountData.records(filings, orgnr, route, format, new Date().toISOString());
+        const tbody = document.getElementById("filing-rows");
+        tbody.replaceChildren();
+        const paths = ["virksomhet.organisasjonsnummer", "regnskapstype", "regnskapsperiode.tilDato", "id", "journalnr", "valuta", "resultatregnskapResultat.driftsresultat.driftsinntekter.sumDriftsinntekter", "resultatregnskapResultat.aarsresultat", "egenkapitalGjeld.egenkapital.sumEgenkapital"];
+        for (const filing of filings) {
+          const tr = document.createElement("tr");
+          for (const path of paths) {
+            const td = document.createElement("td");
+            const value = AccountData.get(filing, path);
+            td.textContent = value == null || value === "" ? "—" : String(value);
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        document.getElementById("parsed-fields").textContent = JSON.stringify(filings, null, 2);
+        document.getElementById("parsed-warning").textContent = lastViaReader
+          ? "Reader-derived preview and CSV: XML tag casing and field nesting may differ from original BRREG JSON. Returned paths and values are preserved without guessing corrections. Use the monthly CSV or original API for authoritative field structure."
+          : "CSV preserves all returned fields. Nested fields use dotted column names; missing values are blank. Formula-like text is prefixed with an apostrophe for spreadsheet safety.";
+        parsedPanel.classList.remove("hidden");
+        if (filings.length) csvButton.classList.remove("hidden");
         downloadButton.classList.remove("hidden");
       } else if (response.status === 404) {
         show(`HTTP 404 via ${route}: no accounts available through this endpoint.`, true);
@@ -197,6 +239,18 @@ ${older ? `<p class="muted">Earlier months: ${older}</p>` : ""}`;
     } finally {
       fetchButton.disabled = false;
     }
+  });
+
+  csvButton.addEventListener("click", () => {
+    const blob = new Blob([AccountData.csv(lastRows)], {type: "text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `regnskap-${lastOrgnr}${lastViaReader ? "-reader" : ""}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   });
 
   downloadButton.addEventListener("click", () => {
