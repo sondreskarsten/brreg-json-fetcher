@@ -120,7 +120,7 @@ def test_six_filings_and_failed_lookups_have_separate_grains(state, tmp_path):
     assert records["923609016"]["register_status"] == "listed"
     assert records["111111111"]["register_status"] == "missing"
     assert records["111111111"]["register_checked_on"] == ""
-    assert manifest["universe"]["organisasjonsform"] == "all except ENK"
+    assert manifest["universe"]["organisasjonsform"] == "all; ENK only with a filed year"
 
 
 def test_csv_parts_are_independently_readable_with_embedded_newlines(tmp_path):

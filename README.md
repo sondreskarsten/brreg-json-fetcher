@@ -4,7 +4,7 @@
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
-A monthly snapshot of the annual accounts of every organisation in Enhetsregisteret except sole proprietorships (**ENK**), published as a ready-to-download CSV dataset. Organisations that later disappear from the register are kept, with a looked-up status explaining why. If you need accounts for many companies, download the finished dataset instead of calling the BRREG API once per organisation. If you need one company, use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/).
+A monthly snapshot of the annual accounts of every organisation in Enhetsregisteret, including the sole proprietorships (**ENK**) that have filed accounts, published as a ready-to-download CSV dataset. Organisations that later disappear from the register are kept, with a looked-up status explaining why. If you need accounts for many companies, download the finished dataset instead of calling the BRREG API once per organisation. If you need one company, use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/).
 
 Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0). This mirror filters, samples monthly, converts JSON to CSV and adds provenance. Read [the verified licence scope, changes and Norwegian legal references](DATA_LICENSE.md), including the distinction between source data and software.
 
@@ -51,7 +51,7 @@ sha256sum -c --ignore-missing SHA256SUMS
 | `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
 | `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
 
-The 6 October 2026 register download held 1,176,724 records, of which 712,513 were not ENK. Earlier months (`data-2026-10` and before) covered only AS/ASA with a reported annual-account year: 402,763 entities. These are observed counts for that download, not fixed expectations.
+The 6 October 2026 register download held 1,176,724 records, of which 712,513 were not ENK and 3,987 were ENK with a filed annual account, giving 716,500 eligible entities. Earlier months (`data-2026-10` and before) covered only AS/ASA with a reported annual-account year: 402,763 entities. These are observed counts for that download, not fixed expectations.
 
 ### Reading the CSV
 
@@ -91,7 +91,7 @@ At the start of each collection month, download the complete Enhetsregisteret ma
 GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned
 ```
 
-Keep every record except those where `organisasjonsform.kode` is **ENK**. `sisteInnsendteAarsregnskap` is retained as `latest_filing_year` but no longer filters. Organisations collected in an earlier month that are absent from the new download are never removed: they stay in the queue, and each one is looked up individually in Enhetsregisteret so the dataset can report whether it was deleted (and when), is unknown, or is still registered. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
+Keep every record except an **ENK** without `sisteInnsendteAarsregnskap`. Only sole proprietorships above the thresholds in regnskapsloven § 1-2 nr. 11 (assets over NOK 20 million or more than 20 full-time equivalents) have regnskapsplikt, and the filed year is the only register field that identifies them. For every other legal form `sisteInnsendteAarsregnskap` is retained as `latest_filing_year` but no longer filters. Organisations collected in an earlier month that are absent from the new download are never removed: they stay in the queue, and each one is looked up individually in Enhetsregisteret so the dataset can report whether it was deleted (and when), is unknown, or is still registered. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
 
 Every eligible entity is fetched once successfully per cycle, with retries for temporary failures. The collector no longer reads announcements or the accounts API load log. New account submissions are picked up by the next monthly full collection.
 

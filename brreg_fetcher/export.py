@@ -272,8 +272,8 @@ def export_release(
         "entities_date": state.get("entities_date"),
         "generation": state.get("generation"),
         "universe": {
-            "organisasjonsform": "all except ENK",
-            "latest_accounts_year": "any",
+            "organisasjonsform": "all; ENK only with a filed year",
+            "latest_accounts_year": "any (ENK: non-null)",
             "removed_from_register": "retained with register_status",
         },
         "dataset": dataset,

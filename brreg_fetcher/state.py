@@ -10,7 +10,7 @@ from pathlib import Path
 from .client import SourceError, decode_filings, unsupported_plan
 
 SCHEMA_VERSION = "4"
-UNIVERSE_VERSION = "all-forms-except-enk-v1"
+UNIVERSE_VERSION = "all-forms-enk-if-filed-v1"
 
 
 def canonical(value):
@@ -127,7 +127,8 @@ class State:
                     """
                     INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform,
                         register_status, register_deleted_date, register_checked_on)
-                    SELECT orgnr, year, coalesce(organisasjonsform, '') != 'ENK',
+                    SELECT orgnr, year,
+                        coalesce(organisasjonsform, '') != 'ENK' OR year IS NOT NULL,
                         ?, organisasjonsform, 'listed', NULL, ? FROM incoming WHERE 1
                     ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year,
                         active=max(entities.active, excluded.active),

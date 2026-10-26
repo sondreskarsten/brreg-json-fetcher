@@ -22,8 +22,14 @@ def test_missing_year_does_not_exclude_an_entity(state, year):
 @pytest.mark.parametrize(
     "form,eligible", [("AS", 1), ("ASA", 1), ("ENK", 0), ("NUF", 1), ("ANS", 1), (None, 1)]
 )
-def test_every_legal_form_except_enk_is_eligible(state, form, eligible):
-    state.sync_entities([entity(form=form)], "2026-10-06")
+def test_every_legal_form_except_unfiled_enk_is_eligible(state, form, eligible):
+    state.sync_entities([entity(form=form, year=None)], "2026-10-06")
+    assert state.summary()["eligible_entities"] == eligible
+
+
+@pytest.mark.parametrize("year,eligible", [(None, 0), ("", 0), ("NA", 0), ("2025", 1)])
+def test_enk_is_eligible_only_with_a_filed_year(state, year, eligible):
+    state.sync_entities([entity(form="ENK", year=year)], "2026-10-06")
     assert state.summary()["eligible_entities"] == eligible
 
 
@@ -58,13 +64,19 @@ def test_failed_register_lookup_is_retried_next_run(state):
 
 def test_export_contains_filtered_seed_with_legal_form(state, tmp_path):
     state.sync_entities(
-        [entity(), entity("974760673", form="ASA"), entity("999999999", form="ENK")], "2026-10-06"
+        [
+            entity(),
+            entity("974760673", form="ASA"),
+            entity("999999999", form="ENK", year=None),
+            entity("888888888", form="ENK"),
+        ],
+        "2026-10-06",
     )
     export_release(state, tmp_path / "release")
     with (tmp_path / "release/observations.csv").open(newline="") as source:
         seed = list(csv.DictReader(source))
-    assert len(seed) == 2
-    assert {row["organisasjonsform"] for row in seed} == {"AS", "ASA"}
+    assert len(seed) == 3
+    assert {row["orgnr"] for row in seed} == {"923609016", "974760673", "888888888"}
 
 
 def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
@@ -79,7 +91,7 @@ def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
     try:
         assert state.get("schema_version") == "4"
         assert state.get("entities_date") is None
-        state.sync_entities([entity(form="ENK")], "2026-10-06")
+        state.sync_entities([entity(form="ENK", year=None)], "2026-10-06")
         assert state.summary()["eligible_entities"] == 0
     finally:
         state.close()
