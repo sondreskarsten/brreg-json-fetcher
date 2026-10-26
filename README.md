@@ -4,7 +4,7 @@
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
-A monthly snapshot of the annual accounts of every Norwegian **AS** and **ASA** that has filed accounts, published as a ready-to-download CSV dataset. If you need accounts for many companies, download the finished dataset instead of calling the BRREG API once per organisation. If you need one company, use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/).
+A monthly snapshot of the annual accounts of every organisation in Enhetsregisteret except sole proprietorships (**ENK**), published as a ready-to-download CSV dataset. Organisations that later disappear from the register are kept, with a looked-up status explaining why. If you need accounts for many companies, download the finished dataset instead of calling the BRREG API once per organisation. If you need one company, use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/).
 
 Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0). This mirror filters, samples monthly, converts JSON to CSV and adds provenance. Read [the verified licence scope, changes and Norwegian legal references](DATA_LICENSE.md), including the distinction between source data and software.
 
@@ -46,18 +46,20 @@ sha256sum -c --ignore-missing SHA256SUMS
 | --- | --- |
 | `enheter.json.gz` | Original full source download used for this month's seed |
 | `accounts.csv` | One row per returned regnskap (filing); up to six rows per organisation |
-| `observations.csv` | One row per eligible organisation: lookup status, actual observation time, response hash and error body |
+| `observations.csv` | One row per eligible organisation: register status, accounts lookup status, actual observation time, response hash and error body |
 | `checkpoint.sqlite3.gz` | Resumable queue, frozen seed, historical filings, observations and exact response bytes |
 | `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
 | `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
 
-The live test on 6 October 2026 selected **402,552 AS** plus **211 ASA** entities from a register download of 1,176,724 records. These are observed counts for that download, not fixed expectations.
+The 6 October 2026 register download held 1,176,724 records, of which 712,513 were not ENK. Earlier months (`data-2026-10` and before) covered only AS/ASA with a reported annual-account year: 402,763 entities. These are observed counts for that download, not fixed expectations.
 
 ### Reading the CSV
 
 CSV uses UTF-8, comma separators, a header, and standard quoting for commas, double quotes and embedded newlines. Account fields are flattened into dotted columns (for example `eiendeler.sumEiendeler`). Columns are discovered from every filing, including newly introduced fields, so read the header rather than relying on a fixed column list. Missing fields are blank. `_meta.orgnr`, `_meta.fiscal_year` and `_meta.snapshot_date` identify the organisation, fiscal year and seed date. `regnskapstype` distinguishes SELSKAP and KONSERN; `id` and `journalnr` are preserved. `_meta.filing_json` preserves the complete filing, including the distinction between absent and null fields. Empty objects and arrays are JSON text.
 
-An organisation returning three years of SELSKAP and three years of KONSERN produces six account rows. A 404 or unsupported plan produces no account row; its outcome remains in `observations.csv`. A valid empty array also produces no account rows, with a successful observation. The monthly seed date is not the actual lookup date: observation timestamps describe when the data was fetched during the multi-day collection, which can span days. The monthly dataset is a collection made during that window, **not a simultaneous month-end observation**. The manifest records the seed date and collection start/finish.
+An organisation returning three years of SELSKAP and three years of KONSERN produces six account rows. A 404 or unsupported plan produces no account row; its outcome remains in `observations.csv`. Banks, insurers, pension funds and other organisations whose accounting plan the BRREG API does not support appear there with `outcome` = `unsupported` and the API's own message (for example `oppstillingsplan som ikke er stottet (BANK)`); organisations with no accounts on file appear with `outcome` = `not_found`.
+
+`observations.csv` also carries three register columns. `register_status` is `listed` when the organisation was in this month's register download. When an organisation collected in an earlier month is missing from the download, it is kept and looked up individually at `GET /enhetsregisteret/api/enheter/{orgnr}`: `deleted` (with `register_deleted_date` = BRREG's `slettedato`), `not_found` (the register no longer knows the number), `still_registered` (the single lookup still returns it, so it was absent from the bulk file for another reason), `lookup_failed` (retried on the next run), or `missing` (not yet looked up; only in incomplete local exports). `register_checked_on` is the date of that status. Removed organisations are still queried for accounts each month, so their last filings stay in `accounts.csv` for as long as the API returns them. A valid empty array also produces no account rows, with a successful observation. The monthly seed date is not the actual lookup date: observation timestamps describe when the data was fetched during the multi-day collection, which can span days. The monthly dataset is a collection made during that window, **not a simultaneous month-end observation**. The manifest records the seed date and collection start/finish.
 
 The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year(tilDato))`. The **filing identity** is its `id`. A new ID for the same logical key is a resubmission. `journalnr` can be shared by SELSKAP and KONSERN and is not a unique filing key.
 
@@ -89,7 +91,7 @@ At the start of each collection month, download the complete Enhetsregisteret ma
 GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned
 ```
 
-Keep only records where `organisasjonsform.kode` is **AS** or **ASA** and `sisteInnsendteAarsregnskap` is a nonmissing integer year. Missing, null, blank, and NA values are excluded. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
+Keep every record except those where `organisasjonsform.kode` is **ENK**. `sisteInnsendteAarsregnskap` is retained as `latest_filing_year` but no longer filters. Organisations collected in an earlier month that are absent from the new download are never removed: they stay in the queue, and each one is looked up individually in Enhetsregisteret so the dataset can report whether it was deleted (and when), is unknown, or is still registered. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
 
 Every eligible entity is fetched once successfully per cycle, with retries for temporary failures. The collector no longer reads announcements or the accounts API load log. New account submissions are picked up by the next monthly full collection.
 
@@ -145,7 +147,7 @@ For a downloaded release:
 uv run brreg-fetch restore --from downloaded-release --state data/checkpoint.sqlite3
 ```
 
-Restore verifies part checksums, the assembled checksum, SQLite integrity, and schema compatibility. It refuses to overwrite an existing checkpoint. Older change-detection checkpoints are migrated; their filing/response history is preserved, while their old work selection is replaced by a fresh monthly AS/ASA seed.
+Restore verifies part checksums, the assembled checksum, SQLite integrity, and schema compatibility. It refuses to overwrite an existing checkpoint. Older checkpoints are migrated; their filing/response history is preserved, while their old work selection is replaced by a fresh monthly seed. Checkpoints from the AS/ASA-only months gain the register columns, and their previously ignored legal forms become eligible at the next seed.
 
 Exit code `2` means account errors remain; `1` means a source/configuration/export failure. Reaching a segment budget is a successful partial run. Neither a partial run nor an incomplete local export is published as a completed monthly data release.
 

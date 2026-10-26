@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Collect every legal form except ENK; the latest-filed-year filter is removed, so unsupported accounting plans (BANK, SKADE, LIV, PENSJ, ...) and organisations without accounts are reported in `observations.csv` instead of being filtered out of the seed.
+- Never drop an organisation once collected. One missing from a later register download is kept in the queue and looked up individually; `observations.csv` gains `register_status`, `register_deleted_date` and `register_checked_on`.
+- Checkpoint schema 4 adds the register columns; schema 3 checkpoints migrate in place.
 - Reorient the README toward downloading the completed monthly dataset.
 - Link the `gh-pages` lookup site, which lists the latest data release and offers manually initiated account lookups, parsed previews and per-filing CSV downloads, with public-proxy attribution and response-format caveats.
 

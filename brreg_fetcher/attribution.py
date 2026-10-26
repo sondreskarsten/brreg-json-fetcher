@@ -23,10 +23,11 @@ Accounts API: https://data.brreg.no/regnskapsregisteret/regnskap
 Entity-register documentation and licence: {ENTITY_DOCUMENTATION}
 Entity source: https://data.brreg.no/enhetsregisteret/api/enheter/lastned
 
-Changes by this mirror: monthly sampling; AS/ASA selection with a reported
-annual-account year; conversion of accounts JSON to CSV, one filing per row;
-dotted field names; added observation/provenance metadata; compression and
-packaging. Missing values in flattened CSV are blank; complete filing JSON
+Changes by this mirror: monthly sampling; selection of every legal form except
+ENK (sole proprietorships); retention of organisations that later leave the
+register, with a looked-up register status; conversion of accounts JSON to CSV,
+one filing per row; dotted field names; added observation/provenance metadata;
+compression and packaging. Missing values in flattened CSV are blank; complete filing JSON
 and stored response bytes retain the source representation for inspection.
 The retained full entity-register download includes other legal forms too.
 

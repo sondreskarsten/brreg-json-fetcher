@@ -31,7 +31,7 @@ def main(argv=None):
     )
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
-    run = commands.add_parser("collect", help="Collect or resume the monthly AS/ASA snapshot")
+    run = commands.add_parser("collect", help="Collect or resume the monthly accounts snapshot")
     run.add_argument("--state", default="data/checkpoint.sqlite3")
     run.add_argument(
         "--entity-snapshot",

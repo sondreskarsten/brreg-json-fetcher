@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from itertools import islice
 
-from .client import Client, SourceError
+from .client import Client, SourceError, decode_register
 from .export import sha256_file
 
 log = logging.getLogger(__name__)
@@ -38,12 +38,30 @@ def collect(
             count,
             state.summary()["eligible_entities"],
         )
+    # Organisations collected earlier but absent from this month's download are kept and
+    # looked up one by one so the dataset can say why they left the register.
+    lookups = {"register_lookups": 0, "register_deleted": 0, "register_lookup_failed": 0}
+    for row in list(state.register_lookups()):
+        lookups["register_lookups"] += 1
+        try:
+            reply = client.entity(row["orgnr"])
+            status, deleted = decode_register(reply.status, reply.body)
+        except (SourceError, OSError, ValueError) as exc:
+            status, deleted = "lookup_failed", ""
+            log.warning("%s: register lookup: %s", row["orgnr"], exc)
+        state.record_register(row["orgnr"], status, deleted, day.isoformat())
+        lookups["register_deleted"] += status == "deleted"
+        lookups["register_lookup_failed"] += status == "lookup_failed"
     log.info(
-        "Month %s; queued entities: %s", state.get("cycle"), state.summary()["queued_entities"]
+        "Month %s; queued entities: %s; register lookups: %s",
+        state.get("cycle"),
+        state.summary()["queued_entities"],
+        lookups["register_lookups"],
     )
     report = {
         "cycle": state.get("cycle"),
         "seed_date": state.get("entities_date"),
+        **lookups,
         "attempted": 0,
         "ok": 0,
         "not_found": 0,
