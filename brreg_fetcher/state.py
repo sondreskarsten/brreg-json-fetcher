@@ -9,8 +9,8 @@ from pathlib import Path
 
 from .client import SourceError, decode_filings, unsupported_plan
 
-SCHEMA_VERSION = "3"
-UNIVERSE_VERSION = "as-asa-filed-v1"
+SCHEMA_VERSION = "4"
+UNIVERSE_VERSION = "all-forms-enk-if-filed-v1"
 
 
 def canonical(value):
@@ -54,7 +54,7 @@ class State:
             );
         """)
         existing = self.get("schema_version")
-        if existing not in (None, "1", "2", SCHEMA_VERSION):
+        if existing not in (None, "1", "2", "3", SCHEMA_VERSION):
             raise SourceError(f"Unsupported checkpoint schema {existing}")
         with self.db:
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(entities)")}
@@ -62,6 +62,9 @@ class State:
                 self.db.execute("ALTER TABLE entities ADD COLUMN organisasjonsform TEXT")
                 # Old checkpoints did not capture legal form; refresh before fetching.
                 self.db.execute("DELETE FROM meta WHERE key='entities_date'")
+            for column in ("register_status", "register_deleted_date", "register_checked_on"):
+                if column not in columns:
+                    self.db.execute(f"ALTER TABLE entities ADD COLUMN {column} TEXT")
             if existing in ("1", "2"):
                 self.db.execute("DROP TABLE IF EXISTS signals")
                 self.db.execute("DROP TABLE IF EXISTS loads")
@@ -111,17 +114,30 @@ class State:
                     count += 1
                 if count == 0:
                     raise SourceError("Refusing an empty entity snapshot")
-                self.db.execute("UPDATE entities SET active=0")
+                # Entities that vanish from the download are kept and looked up individually;
+                # their register status is recorded instead of dropping them.
                 self.db.execute(
                     """
-                    INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform)
+                    UPDATE entities SET register_status='missing', register_deleted_date=NULL,
+                        register_checked_on=NULL
+                    WHERE active=1 AND orgnr NOT IN (SELECT orgnr FROM incoming)
+                    """
+                )
+                self.db.execute(
+                    """
+                    INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform,
+                        register_status, register_deleted_date, register_checked_on)
                     SELECT orgnr, year,
-                        year IS NOT NULL AND coalesce(organisasjonsform IN ('AS', 'ASA'), 0),
-                        ?, organisasjonsform FROM incoming WHERE 1
-                    ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year, active=excluded.active,
-                        observed_on=excluded.observed_on, organisasjonsform=excluded.organisasjonsform
+                        coalesce(organisasjonsform, '') != 'ENK' OR year IS NOT NULL,
+                        ?, organisasjonsform, 'listed', NULL, ? FROM incoming WHERE 1
+                    ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year,
+                        active=max(entities.active, excluded.active),
+                        observed_on=excluded.observed_on, organisasjonsform=excluded.organisasjonsform,
+                        register_status=excluded.register_status,
+                        register_deleted_date=excluded.register_deleted_date,
+                        register_checked_on=excluded.register_checked_on
                 """,
-                    (day,),
+                    (day, day),
                 )
                 self.db.execute(
                     "DELETE FROM work WHERE orgnr NOT IN (SELECT orgnr FROM entities WHERE active=1)"
@@ -136,7 +152,7 @@ class State:
                         "SELECT count(*) FROM entities WHERE active=1"
                     ).fetchone()[0]
                     if not eligible:
-                        raise SourceError("Refusing to start a month with an empty AS/ASA seed")
+                        raise SourceError("Refusing to start a month with an empty seed")
                     self.db.execute("DELETE FROM work")
                     self.db.execute("DELETE FROM current_filings")
                     self.db.execute(
@@ -165,6 +181,26 @@ class State:
 
     def todo(self):
         return self.db.execute("SELECT orgnr, generation FROM work ORDER BY attempts, orgnr")
+
+    def register_lookups(self):
+        return self.db.execute(
+            """
+            SELECT orgnr FROM entities WHERE active=1 AND observed_on < ?
+                AND (register_checked_on IS NULL OR register_checked_on < ?)
+            ORDER BY orgnr
+            """,
+            (self.get("entities_date", ""), self.get("entities_date", "")),
+        )
+
+    def record_register(self, orgnr, status, deleted_date, day):
+        with self.db:
+            self.db.execute(
+                """
+                UPDATE entities SET register_status=?, register_deleted_date=?, register_checked_on=?
+                WHERE orgnr=?
+                """,
+                (status, deleted_date, day if status != "lookup_failed" else None, orgnr),
+            )
 
     def record(self, orgnr, generation, response, now):
         filings = decode_filings(response.body, orgnr) if response.status == 200 else []

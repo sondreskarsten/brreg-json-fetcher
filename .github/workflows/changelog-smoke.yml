@@ -1,0 +1,49 @@
+name: Change-log smoke test
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: Random sample size from the prior release (ignored when orgnrs is set)
+        default: '500'
+      orgnrs:
+        description: Optional whitespace-separated orgnrs to collect instead of a random sample
+        default: ''
+      prior_tag:
+        description: Data release to compare with (defaults to the newest published)
+        default: ''
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.8.22'
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      - name: Collect the sample and build the change log against the prior release
+        env:
+          COUNT: ${{ inputs.count }}
+          ORGNRS: ${{ inputs.orgnrs }}
+          PRIOR_TAG: ${{ inputs.prior_tag }}
+        run: |
+          mkdir -p data
+          args=(--repo "$GITHUB_REPOSITORY" --output data/changelog-smoke --count "$COUNT")
+          if [ -n "$ORGNRS" ]; then printf '%s\n' $ORGNRS > data/orgnrs.txt; args+=(--orgnrs data/orgnrs.txt); fi
+          if [ -n "$PRIOR_TAG" ]; then args+=(--prior-tag "$PRIOR_TAG"); fi
+          uv run python -m scripts.changelog_smoke "${args[@]}"
+          cat data/changelog-smoke/summary.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: changelog-smoke-${{ github.run_id }}
+          path: |
+            data/changelog-smoke/changelog/
+            data/changelog-smoke/current/
+            data/changelog-smoke/summary.json
+          retention-days: 30

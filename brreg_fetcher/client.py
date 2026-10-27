@@ -14,6 +14,7 @@ import requests
 
 ACCOUNTS_URL = "https://data.brreg.no/regnskapsregisteret/regnskap"
 ENTITIES_URL = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned"
+ENTITY_URL = "https://data.brreg.no/enhetsregisteret/api/enheter"
 
 
 class SourceError(RuntimeError):
@@ -27,6 +28,12 @@ class AccountResponse:
     message: str = ""
 
 
+@dataclass(frozen=True)
+class EntityResponse:
+    status: int
+    body: bytes
+
+
 def unsupported_plan(status, message):
     # Live API responses use both the Norwegian and ASCII spellings.
     return status == 500 and "oppstillingsplan som ikke er stottet" in message.casefold().replace(
@@ -37,7 +44,7 @@ def unsupported_plan(status, message):
 class Client:
     def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.4.1"})
+        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.5.0"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep
@@ -125,6 +132,10 @@ class Client:
                     path = packed
                 os.replace(path, self.snapshot_path)
 
+    def entity(self, orgnr):
+        with self.get(f"{ENTITY_URL}/{orgnr}", headers={"Accept": "application/json"}) as r:
+            return EntityResponse(r.status_code, r.content)
+
     def accounts(self, orgnr):
         with self.get(f"{ACCOUNTS_URL}/{orgnr}", headers={"Accept": "application/json"}) as r:
             message = ""
@@ -134,6 +145,22 @@ class Client:
                 except (ValueError, AttributeError):
                     message = f"HTTP {r.status_code}"
             return AccountResponse(r.status_code, r.content, message)
+
+
+def decode_register(status, body):
+    """Explain why an organisation left the bulk download, in end-user terms."""
+    try:
+        entity = json.loads(body) if body else {}
+    except ValueError:
+        entity = {}
+    deleted = str((entity if isinstance(entity, dict) else {}).get("slettedato") or "")
+    if status == 410 or (status == 200 and deleted):
+        return "deleted", deleted
+    if status == 200:
+        return "still_registered", ""
+    if status == 404:
+        return "not_found", ""
+    return "lookup_failed", ""
 
 
 def decode_filings(raw, orgnr):

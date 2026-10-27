@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from brreg_fetcher.state import State
 from scripts import release
 
 
@@ -181,3 +182,79 @@ def test_complete_checkpoint_still_needs_final_publication(monkeypatch, tmp_path
         is True
     )
     assert len(restored) == 1 and len(calls) == 3
+
+
+def resume_with(monkeypatch, tmp_path, tags, manifest):
+    def fake_gh(*args):
+        if args[0] == "api":
+            return json.dumps(
+                [[{"tag_name": t, "draft": False, "published_at": "2026-11-05"} for t in tags]]
+            )
+        directory = Path(args[args.index("--dir") + 1])
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "manifest.json").write_text(json.dumps(manifest))
+        return ""
+
+    restored = []
+
+    def restore(source, destination):
+        restored.append(destination)
+        State(destination).close()
+
+    monkeypatch.setattr(release, "gh", fake_gh)
+    monkeypatch.setattr(release, "restore_checkpoint", restore)
+    return restored
+
+
+COMPLETE_NOVEMBER = {"format_version": 1, "kind": "data", "cycle": "2026-11", "complete": True}
+
+
+def test_resume_marks_changelog_done_when_its_release_exists(monkeypatch, tmp_path):
+    tags = ["data-2026-10", "data-2026-11", "changelog-2026-11"]
+    resume_with(monkeypatch, tmp_path, tags, COMPLETE_NOVEMBER)
+    assert release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 12, 1))
+    state = State(tmp_path / "s")
+    try:
+        assert state.get("cycle_published") == "2026-11"
+        assert state.get("changelog_published") == "2026-11"
+    finally:
+        state.close()
+
+
+def test_resume_leaves_changelog_owed_when_missing_with_a_predecessor(monkeypatch, tmp_path):
+    resume_with(monkeypatch, tmp_path, ["data-2026-10", "data-2026-11"], COMPLETE_NOVEMBER)
+    assert release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 12, 1))
+    state = State(tmp_path / "s")
+    try:
+        assert state.get("cycle_published") == "2026-11"
+        assert state.get("changelog_published") is None
+    finally:
+        state.close()
+
+
+def test_resume_recovers_a_missing_changelog_within_the_same_month(monkeypatch, tmp_path):
+    restored = resume_with(
+        monkeypatch, tmp_path, ["data-2026-10", "data-2026-11"], COMPLETE_NOVEMBER
+    )
+    assert release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 11, 20))
+    assert restored == [tmp_path / "s"]
+
+
+def test_resume_stops_when_the_month_and_its_changelog_are_published(monkeypatch, tmp_path):
+    tags = ["data-2026-10", "data-2026-11", "changelog-2026-11"]
+    restored = resume_with(monkeypatch, tmp_path, tags, COMPLETE_NOVEMBER)
+    assert not release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 11, 20))
+    assert restored == []
+
+
+def test_resume_owes_no_changelog_for_the_first_data_release(monkeypatch, tmp_path):
+    first = {"format_version": 1, "kind": "data", "cycle": "2026-10", "complete": True}
+    restored = resume_with(monkeypatch, tmp_path, ["data-2026-10"], first)
+    assert not release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 10, 20))
+    assert restored == []
+    assert release.resume("o/r", tmp_path / "d", tmp_path / "s", today=date(2026, 11, 1))
+    state = State(tmp_path / "s")
+    try:
+        assert state.get("changelog_published") == "2026-10"
+    finally:
+        state.close()

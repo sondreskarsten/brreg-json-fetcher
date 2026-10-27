@@ -108,13 +108,19 @@ def test_six_filings_and_failed_lookups_have_separate_grains(state, tmp_path):
         state.set("cycle_completed_at", "2026-10-03T12:00:00Z")
     state.start_cycle([entity()], "2026-11-01")
     out = tmp_path / "november"
-    export_release(state, out)
+    manifest = export_release(state, out)
     with (out / "accounts.csv").open(newline="") as stream:
         assert list(csv.DictReader(stream)) == []
     with (out / "observations.csv").open(newline="") as stream:
-        (record,) = csv.DictReader(stream)
-        assert record["outcome"] == "pending"
-        assert record["observed_at"] == ""
+        records = {r["orgnr"]: r for r in csv.DictReader(stream)}
+    assert len(records) == 3
+    assert {r["outcome"] for r in records.values()} == {"pending"}
+    assert {r["observed_at"] for r in records.values()} == {""}
+    # Organisations missing from the November download stay in the dataset.
+    assert records["923609016"]["register_status"] == "listed"
+    assert records["111111111"]["register_status"] == "missing"
+    assert records["111111111"]["register_checked_on"] == ""
+    assert manifest["universe"]["organisasjonsform"] == "all; ENK only with a filed year"
 
 
 def test_csv_parts_are_independently_readable_with_embedded_newlines(tmp_path):

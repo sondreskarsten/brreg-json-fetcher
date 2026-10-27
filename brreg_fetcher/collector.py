@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from itertools import islice
 
-from .client import Client, SourceError
+from .client import Client, SourceError, decode_register
 from .export import sha256_file
 
 log = logging.getLogger(__name__)
@@ -38,12 +38,12 @@ def collect(
             count,
             state.summary()["eligible_entities"],
         )
-    log.info(
-        "Month %s; queued entities: %s", state.get("cycle"), state.summary()["queued_entities"]
-    )
     report = {
         "cycle": state.get("cycle"),
         "seed_date": state.get("entities_date"),
+        "register_lookups": 0,
+        "register_deleted": 0,
+        "register_lookup_failed": 0,
         "attempted": 0,
         "ok": 0,
         "not_found": 0,
@@ -53,6 +53,40 @@ def collect(
         "changed_ids": 0,
     }
     local = threading.local()
+    started = time.monotonic()
+
+    def lookup(row):
+        try:
+            reply = client.entity(row["orgnr"])
+            return row, decode_register(reply.status, reply.body), None
+        except (SourceError, OSError, ValueError) as exc:
+            return row, ("lookup_failed", ""), exc
+
+    # Organisations collected earlier but absent from this month's download are kept and
+    # looked up individually so the dataset can say why they left the register. Lookups
+    # share the segment budget; a failed lookup keeps the month open like a failed fetch.
+    pending = iter(list(state.register_lookups()))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        while True:
+            if max_seconds and time.monotonic() - started >= max_seconds:
+                break
+            batch = list(islice(pending, workers))
+            if not batch:
+                break
+            for row, (status, deleted), error in pool.map(lookup, batch):
+                if error:
+                    log.warning("%s: register lookup: %s", row["orgnr"], error)
+                state.record_register(row["orgnr"], status, deleted, day.isoformat())
+                report["register_lookups"] += 1
+                report["register_deleted"] += status == "deleted"
+                report["register_lookup_failed"] += status == "lookup_failed"
+                report["errors"] += status == "lookup_failed"
+    log.info(
+        "Month %s; queued entities: %s; register lookups: %s",
+        state.get("cycle"),
+        state.summary()["queued_entities"],
+        report["register_lookups"],
+    )
 
     def fetch(row):
         if not hasattr(local, "client"):
@@ -65,7 +99,6 @@ def collect(
     # Snapshot this segment's queue: failures are tried once per invocation after HTTP
     # retries, and work beyond the budget survives in SQLite for the next run.
     todo = iter(list(state.todo()))
-    started = time.monotonic()
     with ThreadPoolExecutor(max_workers=workers) as pool:
         while True:
             if max_seconds and time.monotonic() - started >= max_seconds:
@@ -94,7 +127,11 @@ def collect(
                     log.warning("%s: %s", orgnr, exc)
             log.info("Fetched %s, errors %s", report["attempted"], report["errors"])
     report.update(state.summary())
-    report["complete"] = report["queued_entities"] == 0 and report["errors"] == 0
+    report["complete"] = (
+        report["queued_entities"] == 0
+        and report["errors"] == 0
+        and not list(state.register_lookups())
+    )
     report["date"] = day.isoformat()
     with state.db:
         import json

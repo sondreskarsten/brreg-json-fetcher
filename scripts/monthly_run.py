@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -10,17 +11,46 @@ from pathlib import Path
 
 from brreg_fetcher.export import export_release
 from brreg_fetcher.state import State
-from scripts.release import publish, seed_file
+from scripts.release import publish, publish_changelog, seed_file
+
+log = logging.getLogger(__name__)
 
 
 def finish_month(repo, state, snapshot, output, target):
     cycle = state.get("cycle")
-    original = seed_file(repo, state, snapshot)
-    final_dir = output / f"data-{cycle}"
-    export_release(state, final_dir, snapshot_path=original)
-    publish(repo, final_dir, f"data-{cycle}", target)
-    with state.db:
-        state.set("cycle_published", cycle)
+    if state.get("cycle_published") != cycle:
+        original = seed_file(repo, state, snapshot)
+        final_dir = output / f"data-{cycle}"
+        export_release(state, final_dir, snapshot_path=original)
+        publish(repo, final_dir, f"data-{cycle}", target)
+        with state.db:
+            state.set("cycle_published", cycle)
+    if state.get("changelog_published") != cycle:
+        # The log is derived from two published data releases. A failure here is recorded
+        # and retried on later runs, but never blocks the next month's collection.
+        try:
+            publish_changelog(repo, cycle, output, target)
+        except Exception as exc:  # noqa: BLE001 - any failure is reported, not fatal
+            log.error("Change log for %s not published: %s", cycle, exc)
+            with state.db:
+                state.set("changelog_error", f"{type(exc).__name__}: {exc}"[:2000])
+            return
+        with state.db:
+            state.set("changelog_published", cycle)
+            state.db.execute("DELETE FROM meta WHERE key='changelog_error'")
+
+
+def data_unpublished(state):
+    return bool(state.get("cycle_completed_at")) and state.get("cycle_published") != state.get(
+        "cycle"
+    )
+
+
+def unfinished(state):
+    cycle = state.get("cycle")
+    return bool(state.get("cycle_completed_at")) and (
+        state.get("cycle_published") != cycle or state.get("changelog_published") != cycle
+    )
 
 
 def run_segments(
@@ -41,13 +71,13 @@ def run_segments(
         if state_path.exists():
             prior = State(state_path)
             try:
-                if prior.get("cycle_completed_at") and prior.get("cycle_published") != prior.get(
-                    "cycle"
-                ):
-                    # Recover a crash after the final checkpoint but before release publication,
-                    # including when the calendar has advanced to a new month.
+                if unfinished(prior):
+                    # Recover a crash after the final checkpoint but before release or change-log
+                    # publication, including when the calendar has advanced to a new month.
+                    publishing_data = data_unpublished(prior)
                     finish_month(repo, prior, snapshot, output, target)
-                    return 0
+                    if publishing_data:
+                        return 0
             finally:
                 prior.close()
         report_path = state_path.parent / "run.json"

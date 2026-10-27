@@ -114,6 +114,7 @@ def export_csv(state, destination, max_bytes):
     # unfinished local runs. Historical observations never stand in for this month.
     query = """
         SELECT e.orgnr, e.organisasjonsform, e.year AS latest_filing_year,
+               e.register_status, e.register_deleted_date, e.register_checked_on,
                o.observed_at, o.status AS http_status, o.sha256 AS response_sha256,
                o.message, w.orgnr AS pending, w.error AS pending_error, r.body_gzip
         FROM entities e
@@ -159,6 +160,9 @@ def export_csv(state, destination, max_bytes):
             "snapshot_date",
             "organisasjonsform",
             "latest_filing_year",
+            "register_status",
+            "register_deleted_date",
+            "register_checked_on",
             "observed_at",
             "http_status",
             "response_sha256",
@@ -267,7 +271,11 @@ def export_release(
         "counts": state.summary(),
         "entities_date": state.get("entities_date"),
         "generation": state.get("generation"),
-        "universe": {"organisasjonsform": ["AS", "ASA"], "latest_accounts_year": "non-null"},
+        "universe": {
+            "organisasjonsform": "all; ENK only with a filed year",
+            "latest_accounts_year": "any (ENK: non-null)",
+            "removed_from_register": "retained with register_status",
+        },
         "dataset": dataset,
         "assets": {},
     }
@@ -332,6 +340,6 @@ def restore_checkpoint(source, destination):
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise SourceError("Checkpoint failed SQLite integrity check")
             row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if row is None or row[0] not in ("1", "2", SCHEMA_VERSION):
+            if row is None or row[0] not in ("1", "2", "3", SCHEMA_VERSION):
                 raise SourceError("Unsupported checkpoint schema")
         os.replace(restored, destination)
