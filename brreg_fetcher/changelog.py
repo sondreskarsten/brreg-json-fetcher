@@ -317,7 +317,8 @@ def diff_releases(db, events, sample=False):
     """Yield change rows organisation by organisation; `events` keeps the counts."""
     fields = status_fields(db)
     if sample:
-        query = "SELECT orgnr FROM current_obs ORDER BY orgnr"
+        # A sample compares only what it fetched; an unfinished lookup has nothing to say.
+        query = "SELECT orgnr FROM current_obs WHERE outcome != 'pending' ORDER BY orgnr"
     else:
         query = """
             SELECT orgnr FROM prior_obs UNION SELECT orgnr FROM current_obs

@@ -276,6 +276,27 @@ def test_sample_mode_ignores_organisations_missing_from_the_sample(tmp_path):
     assert partial["events"] == {"Resubmitted": 1, "AgedOut": 1, "Ny": 1}
 
 
+def test_sample_mode_skips_organisations_whose_fetch_is_still_pending(tmp_path):
+    prior_dir, _current_dir = two_months(tmp_path)
+    state = State(tmp_path / "pending.sqlite3")
+    try:
+        state.start_cycle([entity(ORG["A"]), entity(ORG["I"])], "2026-11-03")
+        state.record(
+            ORG["A"],
+            "2026-11",
+            ok(f(ORG["A"], 2025, 7241960, "2026769396")),
+            "2026-11-03T12:00:00+00:00",
+        )
+        state.failure(ORG["I"], "connection failed")
+        export_release(state, tmp_path / "pending")
+    finally:
+        state.close()
+    manifest = build_changelog(prior_dir, tmp_path / "pending", tmp_path / "log", sample=True)
+    rows = read_rows(tmp_path / "log", "delta")
+    assert {r["orgnr"] for r in rows} == {ORG["A"]}
+    assert "Sletting" not in manifest["events"]
+
+
 def test_cumulative_log_continues_event_ids(tmp_path):
     prior_dir, current_dir = two_months(tmp_path)
     first = build_changelog(prior_dir, current_dir, tmp_path / "changelog-2026-11")

@@ -93,6 +93,11 @@ def run(repo, output, *, prior_tag=None, orgnrs=None, count=500, seed=0, workers
     }
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
+    if not report["complete"]:
+        raise RuntimeError(
+            f"Sample collection incomplete: {report['errors']} errors, "
+            f"{report['queued_entities']} queued; the change log above skips them"
+        )
     return summary
 
 
