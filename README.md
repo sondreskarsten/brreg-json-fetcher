@@ -67,6 +67,26 @@ CSV files exceeding 1 GiB split at record boundaries into `accounts-00001.csv`, 
 
 Downstream use must retain the source attribution and licence link above and identify its own changes; see `DATA_NOTICE.md` in every release and [DATA_LICENSE.md](DATA_LICENSE.md).
 
+### Change log between months
+
+Every completed month after the first also publishes **`changelog-YYYY-MM`**, built by comparing the new `data-YYYY-MM` release with the previous month's data release. It is shaped like an update feed: one row per field operation, and the rows of one transition share an `event_id`. `changes-YYYY-MM.csv` holds that month's events; `changes.csv` is the cumulative log since the first comparison, with `event_id` continuing across months.
+
+Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, journalnr_old, journalnr_new, id_old, id_new, op, path, old_value, new_value`. The unit is `orgnr × regnskapstype × fiscal year`; `id` and `journalnr` ride along as attributes. `journalnr` is ten digits, the year Regnskapsregisteret received the submission followed by a sequence number, so a new `journalnr` is a new submission.
+
+| `endringstype` | Meaning | Rows |
+| --- | --- | --- |
+| `Ny` | The key was not in the prior release | one `add` row; `new_value` is the filing's SHA-256 in that month's `accounts.csv` |
+| `Resubmitted` | Same key, new `journalnr` or `id` | one `replace`/`add`/`remove` row per changed field; a single row with empty `op` when the structured figures are identical |
+| `Revised` | Same key, same `journalnr` and `id`, a value differs | one row per changed field; the API cannot tell a BRREG re-extraction from an upstream correction |
+| `KeyChanged` | A filing moved to another fiscal year under the same `journalnr` | field rows, including `regnskapsperiode.tilDato` |
+| `AgedOut` | The key left the response because a newer year arrived and the API returns at most three years per type | one `remove` row |
+| `Sletting` | The key left the response for any other reason, for example the API now answers 404 | one `remove` row |
+| `Status` | Organisation-level change in `outcome`, `http_status`, `message`, `organisasjonsform`, `latest_filing_year`, `register_status` or `register_deleted_date` | one row per changed field |
+
+Two transitions inside one month collapse into one net transition, and a resubmission reversed before the next release is invisible: Regnskapsregisteret has no update feed, so the log records net monthly transitions. A `Revised` event has no date of its own beyond the release month.
+
+The **Change-log smoke test** workflow collects a sample (random, or a given list of orgnrs) against the live API, exports it as a mini release and builds the log against the newest published data release in sample mode, which ignores organisations outside the sample. Its output is a workflow artifact, never a release.
+
 ## Look up one organisation
 
 [sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
@@ -104,6 +124,7 @@ The **Monthly data collection** workflow runs on `ubuntu-latest`:
 3. Run up to **three one-hour fetch segments**, using four workers. After each segment, publish a durable recovery checkpoint. In-flight requests and export/upload time are additional to the fetch budget; the overall job has a 330-minute limit.
 4. If work remains, the next daily continuation restores the queue. Completed entities are not fetched again for that month. Retryable failures remain queued and visibly prevent completion.
 5. Once the queue is finished, publish **`data-YYYY-MM`** with the original seed download, account exports, request outcomes, history, and a resumable checkpoint.
+6. Download the previous month's data release and publish **`changelog-YYYY-MM`** with the differences. A crash between the two publications is recovered on the next run.
 
 The scheduler has a monthly-start trigger on the first day and continuation triggers on the remaining days, at **04:17 UTC** (05:17 Oslo in winter, 06:17 in summer). These are continuation checks, not daily reseeding or daily data releases. When a monthly release is complete, remaining checks that month make no BRREG requests and do not download the large checkpoint.
 
@@ -117,7 +138,7 @@ Scheduled collection and daily continuation runs are enabled when the workflow i
 - The first checkpoint for a month also stores the full original Enhetsregisteret download. Later checkpoints reference it by release tag and SHA-256 instead of reuploading it each hour. The final monthly release includes the verified original download again.
 - Each response is committed locally. An abrupt runner loss can require repeating work since the last successfully published segment checkpoint; it does not discard earlier segments. Retrying a request preserves response/history identity through hashes and filing IDs.
 - A failed checkpoint upload leaves a draft; subsequent runs restore the last published checkpoint. Files left by publication failures are also saved as workflow artifacts for 30 days when possible.
-- A crash after the final checkpoint but before the monthly data release is handled on the next run: it publishes that finished month before starting another seed.
+- A crash after the final checkpoint but before the monthly data release, or between the data release and its change log, is handled on the next run: it publishes what is missing for that finished month before starting another seed.
 - `404` and recognised unsupported accounting plans are recorded terminal outcomes. Network/rate-limit/server failures retain pending work. A finished queue means every seed entity has a terminal outcome, not that every entity returned supported accounts.
 
 ### Run locally
@@ -160,6 +181,13 @@ At each new month, the current filing view is cleared and rebuilt. Exports use o
 An individual CSV record exceeding the 1 GiB asset limit fails export. Incomplete uploads stay drafts until the full asset set is verified.
 
 Version-matching `v*` tags build a wheel/source **software release draft**, separately from monthly data releases.
+
+To build a change log locally from two downloaded data releases, or to publish the one a month is missing:
+
+```bash
+uv run python -c "from brreg_fetcher.changelog import build_changelog; build_changelog('downloaded-data-2026-10', 'downloaded-data-2026-11', 'dist/changelog-2026-11')"
+uv run python scripts/release.py changelog --repo OWNER/REPO --tag data-2026-11 --target COMMIT --directory dist/monthly
+```
 
 ### What the accounts API returns
 

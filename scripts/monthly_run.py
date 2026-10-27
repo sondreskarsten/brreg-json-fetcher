@@ -10,17 +10,30 @@ from pathlib import Path
 
 from brreg_fetcher.export import export_release
 from brreg_fetcher.state import State
-from scripts.release import publish, seed_file
+from scripts.release import publish, publish_changelog, seed_file
 
 
 def finish_month(repo, state, snapshot, output, target):
     cycle = state.get("cycle")
-    original = seed_file(repo, state, snapshot)
-    final_dir = output / f"data-{cycle}"
-    export_release(state, final_dir, snapshot_path=original)
-    publish(repo, final_dir, f"data-{cycle}", target)
-    with state.db:
-        state.set("cycle_published", cycle)
+    if state.get("cycle_published") != cycle:
+        original = seed_file(repo, state, snapshot)
+        final_dir = output / f"data-{cycle}"
+        export_release(state, final_dir, snapshot_path=original)
+        publish(repo, final_dir, f"data-{cycle}", target)
+        with state.db:
+            state.set("cycle_published", cycle)
+    if state.get("changelog_published") != cycle:
+        # The log compares the published data release with the previous month's.
+        publish_changelog(repo, cycle, output, target)
+        with state.db:
+            state.set("changelog_published", cycle)
+
+
+def unfinished(state):
+    cycle = state.get("cycle")
+    return bool(state.get("cycle_completed_at")) and (
+        state.get("cycle_published") != cycle or state.get("changelog_published") != cycle
+    )
 
 
 def run_segments(
@@ -41,11 +54,9 @@ def run_segments(
         if state_path.exists():
             prior = State(state_path)
             try:
-                if prior.get("cycle_completed_at") and prior.get("cycle_published") != prior.get(
-                    "cycle"
-                ):
-                    # Recover a crash after the final checkpoint but before release publication,
-                    # including when the calendar has advanced to a new month.
+                if unfinished(prior):
+                    # Recover a crash after the final checkpoint but before release or change-log
+                    # publication, including when the calendar has advanced to a new month.
                     finish_month(repo, prior, snapshot, output, target)
                     return 0
             finally:

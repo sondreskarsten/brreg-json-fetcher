@@ -153,6 +153,9 @@ def test_multiple_fresh_runners_resume_then_publish_original_month(
         publications.append(tag)
 
     def download(*args):
+        if args[0] == "api":
+            listing = [{"tag_name": t, "draft": False, "published_at": ""} for t in publications]
+            return json.dumps([listing])
         assert args[:2] == ("release", "download")
         target = Path(args[args.index("--dir") + 1])
         shutil.copytree(remote / args[2], target, dirs_exist_ok=True)
