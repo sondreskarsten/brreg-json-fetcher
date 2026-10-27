@@ -2,6 +2,7 @@ import csv
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from conftest import entity, filing
@@ -332,15 +333,15 @@ def test_finish_month_publishes_changelog_and_recovers_after_a_crash(monkeypatch
     monkeypatch.setattr(monthly_run, "seed_file", lambda repo, state, snapshot: None)
     state = State(tmp_path / "data-2026-11.sqlite3")
     try:
-        assert monthly_run.unfinished(state)
-        with pytest.raises(RuntimeError, match="interruption"):
-            monthly_run.finish_month(
-                "o/r", state, tmp_path / "seed.gz", tmp_path / "out1", "a" * 40
-            )
+        assert monthly_run.unfinished(state) and monthly_run.data_unpublished(state)
+        # The data release is published; the change-log failure is recorded, not raised.
+        monthly_run.finish_month("o/r", state, tmp_path / "seed.gz", tmp_path / "out1", "a" * 40)
         assert published[-1] == "data-2026-11" and state.get("changelog_published") is None
-        assert monthly_run.unfinished(state)
+        assert "interruption" in state.get("changelog_error")
+        assert monthly_run.unfinished(state) and not monthly_run.data_unpublished(state)
         monthly_run.finish_month("o/r", state, tmp_path / "seed.gz", tmp_path / "out2", "a" * 40)
         assert published[-1] == "changelog-2026-11" and not monthly_run.unfinished(state)
+        assert state.get("changelog_error") is None
     finally:
         state.close()
     manifest = json.loads((remote / "changelog-2026-11/manifest.json").read_text())
@@ -379,3 +380,44 @@ def test_status_columns_missing_from_the_prior_release_are_not_changes(tmp_path)
         "organisasjonsform",
         "latest_filing_year",
     }
+
+
+def test_persistent_changelog_failure_does_not_block_collection(monkeypatch, tmp_path):
+    prior_dir, _current_dir = two_months(tmp_path)
+    remote = tmp_path / "remote"
+    shutil.copytree(prior_dir, remote / "data-2026-10")
+    published = ["data-2026-10", "data-2026-11"]
+
+    def gh(*args):
+        if args[0] == "api":
+            return json.dumps([[{"tag_name": t, "draft": False} for t in published]])
+        raise RuntimeError("download refused")
+
+    monkeypatch.setattr(release, "gh", gh)
+    monkeypatch.setattr(monthly_run, "publish", lambda *args: None)
+    collected = []
+
+    def collect_process(args, **kwargs):
+        collected.append(args)
+        Path(args[args.index("--report") + 1]).write_text(json.dumps({"complete": False}))
+        return SimpleNamespace(returncode=2)
+
+    monkeypatch.setattr(monthly_run.subprocess, "run", collect_process)
+    state_path = tmp_path / "data-2026-11.sqlite3"
+    state = State(state_path)
+    with state.db:
+        state.set("cycle", "2026-11")
+        state.set("cycle_completed_at", "2026-11-05T12:00:00+00:00")
+        state.set("cycle_published", "2026-11")
+        state.set("seed_release_tag", "checkpoint-2026-11-run-1")
+    state.close()
+    result = monthly_run.run_segments(
+        "o/r", "a" * 40, "run", segments=1, state_path=state_path, output=tmp_path / "out"
+    )
+    assert collected and result == 2
+    state = State(state_path)
+    try:
+        assert "download refused" in state.get("changelog_error")
+        assert state.get("changelog_published") is None
+    finally:
+        state.close()

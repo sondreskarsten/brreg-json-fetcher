@@ -115,42 +115,49 @@ def load_release(db, side, directory, skip_identical_to=None):
     )
     # Status columns introduced after a release was published are not changes.
     db.execute(f"CREATE TABLE {side}_columns (name TEXT PRIMARY KEY)")
-    with db:
-        for path in release_files(directory, manifest, "accounts"):
-            with path.open(newline="", encoding="utf-8") as stream:
-                for row in csv.DictReader(stream):
-                    filing = json.loads(row["_meta.filing_json"])
-                    key = (
-                        row["_meta.orgnr"],
-                        filing["regnskapstype"],
-                        int(row["_meta.fiscal_year"]),
-                        filing["regnskapsperiode"]["fraDato"],
-                    )
-                    identity = (filing["id"], row["_meta.filing_sha256"])
-                    body = "" if other is not None and other.get(key) == identity else None
-                    db.execute(
-                        f"INSERT INTO {side}_filings VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        (
-                            *key,
-                            filing["id"],
-                            str(filing["journalnr"]),
-                            row["_meta.filing_sha256"],
-                            row["_meta.filing_json"] if body is None else body,
-                        ),
-                    )
-        for path in release_files(directory, manifest, "observations"):
-            with path.open(newline="", encoding="utf-8") as stream:
-                reader = csv.DictReader(stream)
-                db.executemany(
-                    f"INSERT OR IGNORE INTO {side}_columns VALUES (?)",
-                    [(name,) for name in reader.fieldnames if name in STATUS_FIELDS],
-                )
-                for row in reader:
-                    db.execute(
-                        f"INSERT INTO {side}_obs VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        (row["orgnr"], *[row.get(field) or "" for field in STATUS_FIELDS]),
-                    )
+    try:
+        with db:
+            _load_tables(db, side, directory, manifest, other)
+    except sqlite3.IntegrityError as exc:
+        raise SourceError(f"Duplicate filing key in {directory}: {exc}") from exc
     return manifest
+
+
+def _load_tables(db, side, directory, manifest, other):
+    for path in release_files(directory, manifest, "accounts"):
+        with path.open(newline="", encoding="utf-8") as stream:
+            for row in csv.DictReader(stream):
+                filing = json.loads(row["_meta.filing_json"])
+                key = (
+                    row["_meta.orgnr"],
+                    filing["regnskapstype"],
+                    int(row["_meta.fiscal_year"]),
+                    filing["regnskapsperiode"]["fraDato"],
+                )
+                identity = (filing["id"], row["_meta.filing_sha256"])
+                body = "" if other is not None and other.get(key) == identity else None
+                db.execute(
+                    f"INSERT INTO {side}_filings VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        *key,
+                        filing["id"],
+                        str(filing.get("journalnr", "")),
+                        row["_meta.filing_sha256"],
+                        row["_meta.filing_json"] if body is None else body,
+                    ),
+                )
+    for path in release_files(directory, manifest, "observations"):
+        with path.open(newline="", encoding="utf-8") as stream:
+            reader = csv.DictReader(stream)
+            db.executemany(
+                f"INSERT OR IGNORE INTO {side}_columns VALUES (?)",
+                [(name,) for name in reader.fieldnames if name in STATUS_FIELDS],
+            )
+            for row in reader:
+                db.execute(
+                    f"INSERT INTO {side}_obs VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (row["orgnr"], *[row.get(field) or "" for field in STATUS_FIELDS]),
+                )
 
 
 def field_changes(old, new):
@@ -166,11 +173,17 @@ def field_changes(old, new):
 
 
 class Events:
+    """Numbers transitions and counts them; rows are handed to the caller one by one."""
+
     def __init__(self, release, first_id):
         self.release = release
         self.next_id = first_id
         self.rows = []
         self.counts = {}
+
+    def drain(self):
+        rows, self.rows = self.rows, []
+        return rows
 
     def event(self, orgnr, endringstype, operations, *, key=None, old=None, new=None):
         event_id = self.next_id
@@ -300,8 +313,8 @@ def status_fields(db):
     return [f for f in STATUS_FIELDS if f in present[0] and f in present[1]]
 
 
-def diff_releases(db, release, first_id, sample=False):
-    events = Events(release, first_id)
+def diff_releases(db, events, sample=False):
+    """Yield change rows organisation by organisation; `events` keeps the counts."""
     fields = status_fields(db)
     if sample:
         query = "SELECT orgnr FROM current_obs ORDER BY orgnr"
@@ -322,22 +335,31 @@ def diff_releases(db, release, first_id, sample=False):
         filing_events(
             events, orgnr, filings_of(db, "prior", orgnr), filings_of(db, "current", orgnr)
         )
-    return events
+        yield from events.drain()
 
 
-def read_cumulative(directory):
-    """Yield rows of a previous changelog release and report its highest event id."""
+def read_rows(directory, manifest, table):
+    for path in release_files(directory, manifest, table):
+        with path.open(newline="", encoding="utf-8") as stream:
+            yield from csv.DictReader(stream)
+
+
+def previous_cumulative(directory, prior_cycle):
+    """The previous change log's manifest and highest event id, read without buffering rows."""
     if directory is None:
-        return [], 0
+        return None, 0
     manifest = read_manifest(directory)
     if manifest.get("kind") != "changelog":
         raise SourceError("Previous changelog release has the wrong kind")
-    rows = []
-    for path in release_files(directory, manifest, "cumulative"):
-        with path.open(newline="", encoding="utf-8") as stream:
-            rows.extend(csv.DictReader(stream))
-    last = max((int(row["event_id"]) for row in rows), default=0)
-    return rows, last
+    if manifest.get("cycle") != prior_cycle:
+        raise SourceError(
+            f"Previous change log covers {manifest.get('cycle')}, not {prior_cycle}; "
+            "the cumulative log would have a gap"
+        )
+    last = 0
+    for row in read_rows(directory, manifest, "cumulative"):
+        last = max(last, int(row["event_id"]))
+    return manifest, last
 
 
 def build_changelog(
@@ -353,7 +375,6 @@ def build_changelog(
     destination.mkdir(parents=True, exist_ok=True)
     if any(destination.iterdir()):
         raise SourceError("Changelog output directory must be empty to avoid mixing runs")
-    history, last_id = read_cumulative(previous_changelog)
     with tempfile.TemporaryDirectory(prefix="brreg-changelog-") as tmp:
         db = sqlite3.connect(Path(tmp) / "diff.sqlite3")
         db.row_factory = sqlite3.Row
@@ -369,13 +390,25 @@ def build_changelog(
             ):
                 raise SourceError("The prior release must be an earlier cycle")
             cycle = current["cycle"]
-            events = diff_releases(db, cycle, last_id + 1, sample=sample)
+            history, last_id = previous_cumulative(previous_changelog, prior["cycle"])
+            events = Events(cycle, last_id + 1)
+            delta = write_csv(
+                diff_releases(db, events, sample=sample),
+                COLUMNS,
+                destination,
+                f"changes-{cycle}",
+                max_asset_bytes,
+            )
         finally:
             db.close()
-    delta = write_csv(iter(events.rows), COLUMNS, destination, f"changes-{cycle}", max_asset_bytes)
-    cumulative = write_csv(
-        iter([*history, *events.rows]), COLUMNS, destination, "changes", max_asset_bytes
-    )
+    delta_manifest = {"dataset": {"delta": delta}, "assets": {}}
+
+    def cumulative_rows():
+        if history is not None:
+            yield from read_rows(previous_changelog, history, "cumulative")
+        yield from read_rows(destination, delta_manifest, "delta")
+
+    cumulative = write_csv(cumulative_rows(), COLUMNS, destination, "changes", max_asset_bytes)
     (destination / "DATA_NOTICE.md").write_text(NOTICE, encoding="utf-8")
     manifest = {
         "format_version": 1,

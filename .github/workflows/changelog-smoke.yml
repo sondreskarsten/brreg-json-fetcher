@@ -33,10 +33,10 @@ jobs:
           ORGNRS: ${{ inputs.orgnrs }}
           PRIOR_TAG: ${{ inputs.prior_tag }}
         run: |
+          mkdir -p data
           args=(--repo "$GITHUB_REPOSITORY" --output data/changelog-smoke --count "$COUNT")
           if [ -n "$ORGNRS" ]; then printf '%s\n' $ORGNRS > data/orgnrs.txt; args+=(--orgnrs data/orgnrs.txt); fi
           if [ -n "$PRIOR_TAG" ]; then args+=(--prior-tag "$PRIOR_TAG"); fi
-          mkdir -p data
           uv run python -m scripts.changelog_smoke "${args[@]}"
           cat data/changelog-smoke/summary.json >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4

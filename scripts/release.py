@@ -47,13 +47,8 @@ def download_release(repo, tag, directory, *patterns):
 
 def resume(repo, directory, state, bootstrap=False, today=None):
     # A failed listing/download is never treated as a missing checkpoint.
-    pages = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases"))
-    releases = [
-        r
-        for page in pages
-        for r in page
-        if r["tag_name"].startswith(("data-", "checkpoint-")) and not r["draft"]
-    ]
+    published = published_releases(repo)
+    releases = [r for r in published if r["tag_name"].startswith(("data-", "checkpoint-"))]
     if not releases:
         if not bootstrap:
             raise RuntimeError(
@@ -85,11 +80,16 @@ def resume(repo, directory, state, bootstrap=False, today=None):
     if manifest.get("format_version") != 1:
         raise RuntimeError("Unsupported recovery manifest")
     month = (today or datetime.now(ZoneInfo("Europe/Oslo")).date()).strftime("%Y-%m")
-    if (
-        manifest.get("kind") == "data"
-        and manifest.get("complete")
-        and manifest.get("cycle") == month
-    ):
+    complete = manifest.get("kind") == "data" and manifest.get("complete")
+    cycle = manifest.get("cycle")
+    # A change log is owed when an earlier data release exists to compare with and the
+    # log for this cycle is not published yet; it is recovered like the data release.
+    changelog_owed = bool(
+        complete
+        and previous_release(published, "data", cycle)
+        and f"changelog-{cycle}" not in {r["tag_name"] for r in published}
+    )
+    if complete and cycle == month and not changelog_owed:
         print(f"Monthly release {release['tag_name']} is already complete; nothing to collect")
         return False
     gh(
@@ -104,15 +104,12 @@ def resume(repo, directory, state, bootstrap=False, today=None):
         "checkpoint.sqlite3.gz*",
     )
     restore_checkpoint(directory, state)
-    if manifest.get("kind") == "data" and manifest.get("complete"):
-        cycle = manifest["cycle"]
-        tags = {r["tag_name"] for r in releases}
+    if complete:
         restored = State(state)
         try:
             with restored.db:
                 restored.set("cycle_published", cycle)
-                # A change log is owed only when an earlier data release exists to compare with.
-                if f"changelog-{cycle}" in tags or not previous_release(releases, "data", cycle):
+                if not changelog_owed:
                     restored.set("changelog_published", cycle)
         finally:
             restored.close()

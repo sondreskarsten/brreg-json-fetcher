@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from brreg_fetcher.changelog import build_changelog
+from brreg_fetcher.changelog import build_changelog, read_manifest, release_files
 from brreg_fetcher.client import Client
 from brreg_fetcher.collector import collect
 from brreg_fetcher.export import export_release
@@ -34,8 +34,10 @@ class SeedClient:
 
 
 def sample_records(prior_dir, orgnrs=None, count=0, seed=0):
-    with (prior_dir / "observations.csv").open(newline="", encoding="utf-8") as stream:
-        rows = list(csv.DictReader(stream))
+    rows = []
+    for path in release_files(prior_dir, read_manifest(prior_dir), "observations"):
+        with path.open(newline="", encoding="utf-8") as stream:
+            rows.extend(csv.DictReader(stream))
     if orgnrs:
         wanted = set(orgnrs)
         rows = [r for r in rows if r["orgnr"] in wanted]

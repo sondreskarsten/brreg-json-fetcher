@@ -26,6 +26,10 @@ class FakeClient:
         self.lookups.append(orgnr)
         if self.fail:
             raise SourceError("connection failed")
+        if getattr(self, "slow", False):
+            import time
+
+            time.sleep(0.01)
         body = json.dumps({"organisasjonsnummer": orgnr, "slettedato": "2026-10-20"}).encode()
         return EntityResponse(410, body)
 
@@ -100,11 +104,13 @@ def test_removed_entity_is_looked_up_kept_and_still_fetched(state, tmp_path):
     assert second["cycle"] == "2026-11"
     assert second["register_lookups"] == 1 and second["register_lookup_failed"] == 1
     assert client.lookups == ["923609016"]
+    # A failed lookup counts like a failed fetch and keeps the month open.
+    assert second["errors"] == 3 and not second["complete"]
     client.fail = False
     third = collect(state, client, date(2026, 11, 3), **options)
     assert third["register_lookups"] == 1 and third["register_deleted"] == 1
     assert third["complete"] and third["eligible_entities"] == 2
-    assert second["errors"] == 2 and client.calls.count("923609016") == 3
+    assert client.calls.count("923609016") == 3
     fourth = collect(state, client, date(2026, 11, 4), **options)
     assert fourth["register_lookups"] == 0
     export_release(state, tmp_path / "release")
@@ -116,3 +122,14 @@ def test_removed_entity_is_looked_up_kept_and_still_fetched(state, tmp_path):
     assert gone["register_checked_on"] == "2026-11-03"
     assert listed["register_status"] == "listed" and listed["register_deleted_date"] == ""
     assert listed["register_checked_on"] == "2026-11-02"
+
+
+def test_register_lookups_share_the_segment_budget(state):
+    client = FakeClient()
+    options = {"workers": 1, "account_client_factory": lambda: client}
+    collect(state, client, date(2026, 10, 6), **options)
+    client.register = [entity("974760673")]
+    client.slow = True
+    report = collect(state, client, date(2026, 11, 2), max_seconds=0.001, **options)
+    assert report["register_lookups"] <= 1 and report["attempted"] == 0
+    assert not report["complete"]

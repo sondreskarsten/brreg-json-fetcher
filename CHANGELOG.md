@@ -3,6 +3,7 @@
 ## 0.5.0
 
 - Publish `changelog-YYYY-MM` after each data release: a field-level log of filings and lookup status compared with the previous month, shaped like an update feed, with a cumulative file across months. Recover a crash between the data release and its change log on the next run.
+- Register lookups run on the worker pool within the segment budget, and a failed lookup keeps the month open like a failed fetch.
 - Add a change-log smoke test workflow that collects a sample against the live API and compares it with the newest data release.
 - Collect every legal form; ENK is included when the register reports a filed annual account (regnskapsloven § 1-2 nr. 11 sole proprietorships). The latest-filed-year filter is removed for all other forms, so unsupported accounting plans (BANK, SKADE, LIV, PENSJ, ...) and organisations without accounts are reported in `observations.csv` instead of being filtered out of the seed.
 - Never drop an organisation once collected. One missing from a later register download is kept in the queue and looked up individually; `observations.csv` gains `register_status`, `register_deleted_date` and `register_checked_on`.
