@@ -87,6 +87,17 @@ The cumulative file refuses to chain onto a previous change log for any cycle ot
 
 The **Change-log smoke test** workflow collects a sample (random, or a given list of orgnrs) against the live API, exports it as a mini release and builds the log against the newest published data release in sample mode, which ignores organisations outside the sample. Its output is a workflow artifact, never a release.
 
+Before collecting accounts, the workflow calls the production `Client.entity` and
+`decode_register` for an active control, two units reported as deleted in the
+25 October 2026 update feed, and an unknown-number control. This explicitly tests
+the single-entity endpoint even when no organisation is missing from the sample
+seed. Deleted controls must include a deletion date. Raw response bodies, hashes,
+HTTP statuses and decoded outcomes are retained in the artifact, including on
+failure. Run this check alone with `uv run python -m scripts.register_smoke`.
+These fixed controls may need replacement if their source status changes.
+This check does not simulate a new monthly bulk seed or establish full-population
+throughput; the accounts sample checks runner download, export and comparison.
+
 ## Look up one organisation
 
 [sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
