@@ -5,16 +5,54 @@ import hashlib
 import json
 import re
 import sqlite3
+from decimal import Decimal
 from pathlib import Path
 
 from .client import SourceError, decode_filings, unsupported_plan
 
-SCHEMA_VERSION = "4"
+SCHEMA_VERSION = "5"
+REGISTER_COLUMNS = {
+    "first_seen": "TEXT",
+    "kommunenummer": "TEXT",
+    "naeringskode": "TEXT",
+    "antall_ansatte": "INTEGER",
+    "mva": "INTEGER",
+    "foretaksregisteret": "INTEGER",
+    "konkurs": "INTEGER",
+    "under_avvikling": "INTEGER",
+    "tvangsavvikling": "INTEGER",
+    "registreringsdato": "TEXT",
+    "kapital": "REAL",
+}
 UNIVERSE_VERSION = "all-forms-enk-if-filed-v1"
 
 
 def canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def register_attributes(entity):
+    """Binning inputs for the population summary, taken from the register download."""
+    # The streaming parser yields JSON numbers as int or Decimal, never float.
+    numeric = (int, float, Decimal)
+    business = entity.get("forretningsadresse") or {}
+    postal = entity.get("postadresse") or {}
+    employees = entity.get("antallAnsatte")
+    capital = (entity.get("kapital") or {}).get("belop")
+    return (
+        business.get("kommunenummer") or postal.get("kommunenummer"),
+        (entity.get("naeringskode1") or {}).get("kode"),
+        int(employees)
+        if isinstance(employees, numeric) and not isinstance(employees, bool)
+        else None,
+        int(bool(entity.get("registrertIMvaregisteret"))),
+        int(bool(entity.get("registrertIForetaksregisteret"))),
+        int(bool(entity.get("konkurs"))),
+        int(bool(entity.get("underAvvikling"))),
+        int(bool(entity.get("underTvangsavviklingEllerTvangsopplosning"))),
+        entity.get("registreringsdatoEnhetsregisteret"),
+        float(capital) if isinstance(capital, numeric) and not isinstance(capital, bool) else None,
+    )
 
 
 class State:
@@ -54,7 +92,7 @@ class State:
             );
         """)
         existing = self.get("schema_version")
-        if existing not in (None, "1", "2", "3", SCHEMA_VERSION):
+        if existing not in (None, "1", "2", "3", "4", SCHEMA_VERSION):
             raise SourceError(f"Unsupported checkpoint schema {existing}")
         with self.db:
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(entities)")}
@@ -65,6 +103,13 @@ class State:
             for column in ("register_status", "register_deleted_date", "register_checked_on"):
                 if column not in columns:
                     self.db.execute(f"ALTER TABLE entities ADD COLUMN {column} TEXT")
+            for column, kind in REGISTER_COLUMNS.items():
+                if column not in columns:
+                    self.db.execute(f"ALTER TABLE entities ADD COLUMN {column} {kind}")
+            if "first_seen" not in columns:
+                # Rows from before the population columns date their first sighting to the
+                # last download that listed them; their attributes arrive with the next seed.
+                self.db.execute("UPDATE entities SET first_seen=observed_on")
             if existing in ("1", "2"):
                 self.db.execute("DROP TABLE IF EXISTS signals")
                 self.db.execute("DROP TABLE IF EXISTS loads")
@@ -88,9 +133,17 @@ class State:
         """Commit a new entity snapshot only after the entire download parses."""
         self.db.execute("DROP TABLE IF EXISTS temp.incoming")
         self.db.execute(
-            "CREATE TEMP TABLE incoming (orgnr TEXT PRIMARY KEY, year INTEGER, organisasjonsform TEXT)"
+            """
+            CREATE TEMP TABLE incoming (
+                orgnr TEXT PRIMARY KEY, year INTEGER, organisasjonsform TEXT, kommunenummer TEXT,
+                naeringskode TEXT, antall_ansatte INTEGER, mva INTEGER, foretaksregisteret INTEGER,
+                konkurs INTEGER, under_avvikling INTEGER, tvangsavvikling INTEGER,
+                registreringsdato TEXT, kapital REAL
+            )
+            """
         )
         count = 0
+        labels = json.loads(self.get("organisasjonsform_labels", "{}"))
         try:
             with self.db:
                 for entity in records:
@@ -107,9 +160,12 @@ class State:
                         raise SourceError("Entity snapshot contains an invalid orgnr")
                     if year and not re.fullmatch(r"[1-9]\d{3}", year):
                         raise SourceError(f"Invalid latest filing year for {orgnr}")
+                    label = (entity.get("organisasjonsform") or {}).get("beskrivelse")
+                    if form and label:
+                        labels[form] = label
                     self.db.execute(
-                        "INSERT INTO incoming VALUES (?, ?, ?)",
-                        (orgnr, int(year) if year else None, form),
+                        "INSERT INTO incoming VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (orgnr, int(year) if year else None, form, *register_attributes(entity)),
                     )
                     count += 1
                 if count == 0:
@@ -126,19 +182,35 @@ class State:
                 self.db.execute(
                     """
                     INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform,
-                        register_status, register_deleted_date, register_checked_on)
+                        register_status, register_deleted_date, register_checked_on, first_seen,
+                        kommunenummer, naeringskode, antall_ansatte, mva, foretaksregisteret,
+                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital)
                     SELECT orgnr, year,
                         coalesce(organisasjonsform, '') != 'ENK' OR year IS NOT NULL,
-                        ?, organisasjonsform, 'listed', NULL, ? FROM incoming WHERE 1
+                        ?, organisasjonsform, 'listed', NULL, ?, ?,
+                        kommunenummer, naeringskode, antall_ansatte, mva, foretaksregisteret,
+                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital
+                    FROM incoming WHERE 1
                     ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year,
                         active=max(entities.active, excluded.active),
                         observed_on=excluded.observed_on, organisasjonsform=excluded.organisasjonsform,
                         register_status=excluded.register_status,
                         register_deleted_date=excluded.register_deleted_date,
-                        register_checked_on=excluded.register_checked_on
+                        register_checked_on=excluded.register_checked_on,
+                        kommunenummer=excluded.kommunenummer, naeringskode=excluded.naeringskode,
+                        antall_ansatte=excluded.antall_ansatte, mva=excluded.mva,
+                        foretaksregisteret=excluded.foretaksregisteret, konkurs=excluded.konkurs,
+                        under_avvikling=excluded.under_avvikling,
+                        tvangsavvikling=excluded.tvangsavvikling,
+                        registreringsdato=excluded.registreringsdato, kapital=excluded.kapital
                 """,
-                    (day, day),
+                    (day, day, day),
                 )
+                self.set("organisasjonsform_labels", json.dumps(labels, ensure_ascii=False))
+                previous = self.get("entities_date")
+                if previous and previous < day:
+                    self.set("previous_entities_date", previous)
+                self.set("register_attributes_date", day)
                 self.db.execute(
                     "DELETE FROM work WHERE orgnr NOT IN (SELECT orgnr FROM entities WHERE active=1)"
                 )

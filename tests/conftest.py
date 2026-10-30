@@ -13,12 +13,14 @@ def state(tmp_path):
     store.close()
 
 
-def entity(orgnr="923609016", year="2025", form="AS"):
-    return {
+def entity(orgnr="923609016", year="2025", form="AS", **register):
+    record = {
         "organisasjonsnummer": orgnr,
         "sisteInnsendteAarsregnskap": year,
-        "organisasjonsform": {"kode": form} if form else None,
+        "organisasjonsform": {"kode": form, "beskrivelse": f"Form {form}"} if form else None,
     }
+    record.update(register)
+    return record
 
 
 def filing(id=1, orgnr="923609016", account_type="SELSKAP", year=2025, **extra):
