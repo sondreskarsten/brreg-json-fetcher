@@ -27,6 +27,8 @@ jobs:
           python-version: '3.12'
       - run: uv sync --frozen
       - run: uv run pytest -q
+      - name: Check live single-entity register responses
+        run: uv run python -m scripts.register_smoke
       - name: Collect the sample and build the change log against the prior release
         env:
           COUNT: ${{ inputs.count }}
@@ -40,9 +42,11 @@ jobs:
           uv run python -m scripts.changelog_smoke "${args[@]}"
           cat data/changelog-smoke/summary.json >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: changelog-smoke-${{ github.run_id }}
           path: |
+            data/register-smoke/
             data/changelog-smoke/changelog/
             data/changelog-smoke/current/
             data/changelog-smoke/summary.json
