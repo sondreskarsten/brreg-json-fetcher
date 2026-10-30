@@ -5,7 +5,7 @@ import math
 from array import array
 from datetime import date
 
-from .export import write_csv
+from .export import outcome_label, write_csv
 
 DIMENSIONS = ["organisasjonsform", "fylke", "nace2", "has_employees", "vat_registered"]
 TABLES = {
@@ -20,6 +20,8 @@ UNKNOWN = "unknown"
 QUANTILES = [("p10", 0.1), ("p25", 0.25), ("median", 0.5), ("p75", 0.75), ("p90", 0.9)]
 MEASURES = ["age_years", "employees", "share_capital"]
 FLAGS = [
+    "listed",
+    "removed",
     "in_fetch_universe",
     "foretaksregisteret",
     "konkurs",
@@ -158,6 +160,15 @@ RULES = [
     ("age_years", "(seed date - registreringsdatoEnhetsregisteret) / 365.25"),
     ("employees", "antallAnsatte, summarised only over organisations with at least one"),
     ("share_capital", "kapital.belop in the register's currency, mostly AS"),
+    ("listed", "organisation is in this month's register download"),
+    (
+        "removed",
+        (
+            "organisation was collected in an earlier month and is absent from this month's "
+            "download; it stays in the population and in the fetch universe, so n_listed is the "
+            "live register and n = n_listed + n_removed"
+        ),
+    ),
     ("in_fetch_universe", "organisation was queued for the accounts API this month"),
     (
         "coverage_ratio",
@@ -166,13 +177,13 @@ RULES = [
             "to project the accounts sample onto the register population"
         ),
     ),
-    ("entries", "organisations first seen in this month's register download"),
+    ("entries", "organisations in this month's download that were not in the previous one"),
     (
         "exits",
         (
-            "organisations seen in an earlier download and absent from this month's; exit_* splits "
-            "them by the single-entity lookup, 'unchecked' when no lookup was made (ENK and other "
-            "organisations outside the fetch universe) or it failed"
+            "organisations in the previous download that are absent from this month's; exit_* "
+            "splits them by the single-entity lookup, 'unchecked' when no lookup was made (ENK "
+            "and other organisations outside the fetch universe) or it failed"
         ),
     ),
 ]
@@ -266,20 +277,13 @@ def entity_rows(state):
 
 
 def outcome_of(row):
-    from .client import unsupported_plan
-
     if not row["active"]:
         return "not_in_universe"
-    status = row["http_status"]
-    if row["pending"] is not None or status is None:
-        return "pending"
-    if status == 200:
-        return "ok"
-    if status == 404:
-        return "not_found"
-    if unsupported_plan(status, row["message"] or ""):
-        return "unsupported"
-    return "error"
+    return outcome_label(row["http_status"], row["message"], row["pending"] is not None)
+
+
+def new_change():
+    return {"entries": 0, "exits": 0, **{f"exit_{s}": 0 for s in EXIT_STATUSES}}
 
 
 def summarise(state, seed_day):
@@ -287,14 +291,8 @@ def summarise(state, seed_day):
     changes = {}
     total = 0
     form_totals = {}
-    # The first download has no predecessor: nothing entered or left relative to it.
-    has_history = (
-        state.db.execute(
-            "SELECT 1 FROM entities WHERE first_seen < ? OR observed_on < ? LIMIT 1",
-            (seed_day, seed_day),
-        ).fetchone()
-        is not None
-    )
+    # Entries and exits are relative to the previous download; the first one has none.
+    previous_day = state.get("previous_entities_date")
     for row in entity_rows(state):
         total += 1
         form = row["organisasjonsform"] or UNKNOWN
@@ -306,7 +304,10 @@ def summarise(state, seed_day):
             "has_employees": yes_no((row["antall_ansatte"] or 0) > 0),
             "vat_registered": yes_no(row["mva"]),
         }
+        listed = row["observed_on"] == seed_day
         flags = {
+            "listed": listed,
+            "removed": not listed,
             "in_fetch_universe": bool(row["active"]),
             "foretaksregisteret": bool(row["foretaksregisteret"]),
             "konkurs": bool(row["konkurs"]),
@@ -321,7 +322,11 @@ def summarise(state, seed_day):
         }
         outcome = outcome_of(row)
         for name, keys in TABLES.items():
-            cell = tables[name].setdefault(tuple(dims[k] for k in keys), Cell())
+            cells = tables[name]
+            key = tuple(dims[k] for k in keys)
+            cell = cells.get(key)
+            if cell is None:
+                cell = cells[key] = Cell()
             cell.n += 1
             for flag, value in flags.items():
                 cell.flags[flag] += value
@@ -330,13 +335,11 @@ def summarise(state, seed_day):
             for measure, value in measures.items():
                 if value is not None:
                     cell.measures[measure].append(float(value))
-        entered = has_history and row["first_seen"] == seed_day
-        exited = row["observed_on"] < seed_day
+        entered = previous_day is not None and row["first_seen"] == seed_day
+        exited = previous_day is not None and row["observed_on"] == previous_day
         if entered or exited:
             key = tuple(dims[k] for k in CHANGE_DIMENSIONS)
-            change = changes.setdefault(
-                key, {"entries": 0, "exits": 0, **{f"exit_{s}": 0 for s in EXIT_STATUSES}}
-            )
+            change = changes.setdefault(key, new_change())
             change["entries"] += entered
             if exited:
                 change["exits"] += 1
@@ -409,7 +412,12 @@ def export_population(state, destination, max_bytes):
     seed_day = state.get("entities_date", "")
     tables, changes, total, form_totals = summarise(state, seed_day)
     columns = stat_columns()
-    dataset = {"snapshot_date": seed_day, "entities": total, "tables": {}}
+    dataset = {
+        "snapshot_date": seed_day,
+        "previous_snapshot_date": state.get("previous_entities_date"),
+        "entities": total,
+        "tables": {},
+    }
     for name, keys in TABLES.items():
         dataset["tables"][name] = write_csv(
             table_rows(tables[name], keys, total, form_totals),
@@ -433,7 +441,7 @@ def export_population(state, destination, max_bytes):
         max_bytes,
     )
     by_form = {}
-    enk = {"entries": 0, "exits": 0, **{f"exit_{s}": 0 for s in EXIT_STATUSES}}
+    enk = new_change()
     for key, change in changes.items():
         form = key[0]
         summary = by_form.setdefault(form, {"entries": 0, "exits": 0})

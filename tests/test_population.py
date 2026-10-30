@@ -103,6 +103,8 @@ def test_population_tables_cover_every_form_and_join_accounts_coverage(tmp_path)
     assert by_form["ENK"]["n_not_in_universe"] == "1" and by_form["ENK"]["n_filed_year"] == "1"
     assert by_form["BANK"]["n_unsupported"] == "1" and by_form["BANK"]["n_filings"] == "0"
     assert by_form["AS"]["n_filings"] == "1" and by_form["AS"]["share_of_total"] == "0.400000"
+    assert by_form["AS"]["n_listed"] == "2" and by_form["AS"]["n_removed"] == "0"
+    assert population["previous_snapshot_date"] is None
     full = read(out, "register_population")
     cells = {
         (r["organisasjonsform"], r["fylke"], r["nace2"], r["has_employees"], r["vat_registered"])
@@ -179,20 +181,42 @@ def test_entries_and_exits_including_enk_are_counted_by_form_fylke_nace(tmp_path
         "NUF": {"entries": 1, "exits": 0},
     }
     by_form = {r["organisasjonsform"]: r for r in read(tmp_path / "release", "register_by_form")}
-    # The exited AS stays in the population and in the fetch universe.
+    # The exited AS stays in the population and in the fetch universe, flagged as removed.
     assert by_form["AS"]["n"] == "2" and by_form["AS"]["n_in_fetch_universe"] == "2"
+    assert by_form["AS"]["n_listed"] == "1" and by_form["AS"]["n_removed"] == "1"
+    assert population["previous_snapshot_date"] == "2026-10-06"
+
+    # December: the same organisation is still absent but is not an exit again.
+    state = State(tmp_path / "s.sqlite3")
+    try:
+        for row in list(state.todo()):
+            state.record(row["orgnr"], "2026-11", AccountResponse(404, b""), "2026-11-03")
+        with state.db:
+            state.set("cycle_completed_at", "2026-11-05T12:00:00+00:00")
+        state.start_cycle(november, "2026-12-01")
+        manifest = export_release(state, tmp_path / "december")
+    finally:
+        state.close()
+    assert read(tmp_path / "december", "register_changes") == []
+    assert manifest["population"]["changes_by_form"] == {}
+    by_form = {r["organisasjonsform"]: r for r in read(tmp_path / "december", "register_by_form")}
+    assert by_form["AS"]["n_removed"] == "1" and by_form["ENK"]["n_removed"] == "1"
 
 
-def test_schema_four_checkpoint_gains_population_columns_without_losing_rows(tmp_path):
+def test_schema_four_checkpoint_gains_population_columns_and_defers_the_summary(tmp_path):
     path = tmp_path / "s.sqlite3"
     state = State(path)
     try:
         state.start_cycle([entity()], "2026-10-06")
+        state.record("923609016", "2026-10", response(filing()), "2026-10-06")
         with state.db:
-            state.db.execute(
-                "UPDATE entities SET first_seen=NULL, kommunenummer=NULL, naeringskode=NULL"
-            )
+            for column in ("first_seen", "kommunenummer", "naeringskode", "kapital"):
+                state.db.execute(f"ALTER TABLE entities DROP COLUMN {column}")
             state.set("schema_version", "4")
+            state.set("cycle_completed_at", "2026-10-06T12:00:00+00:00")
+            state.db.execute(
+                "DELETE FROM meta WHERE key IN ('register_attributes_date', 'previous_entities_date')"
+            )
     finally:
         state.close()
     state = State(path)
@@ -201,6 +225,15 @@ def test_schema_four_checkpoint_gains_population_columns_without_losing_rows(tmp
         row = state.db.execute("SELECT first_seen, observed_on FROM entities").fetchone()
         assert row["first_seen"] == row["observed_on"] == "2026-10-06"
         assert json.loads(state.get("organisasjonsform_labels")) == {"AS": "Form AS"}
+        # Exporting before the next seed publishes no population tables built from NULLs.
+        manifest = export_release(state, tmp_path / "recovered")
+        assert manifest["population"] is None
+        assert not (tmp_path / "recovered/register_population.csv").exists()
+        assert (tmp_path / "recovered/accounts.csv").exists()
+        state.start_cycle([entity(), entity("974760673", form="NUF")], "2026-11-02")
+        manifest = export_release(state, tmp_path / "november")
+        assert manifest["population"]["entities"] == 2
+        assert manifest["population"]["changes_by_form"] == {"NUF": {"entries": 1, "exits": 0}}
     finally:
         state.close()
 

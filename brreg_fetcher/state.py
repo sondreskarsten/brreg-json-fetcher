@@ -106,9 +106,10 @@ class State:
             for column, kind in REGISTER_COLUMNS.items():
                 if column not in columns:
                     self.db.execute(f"ALTER TABLE entities ADD COLUMN {column} {kind}")
-            # Rows from before the population columns date their first sighting to the
-            # last download that listed them; their register attributes arrive with the next seed.
-            self.db.execute("UPDATE entities SET first_seen=observed_on WHERE first_seen IS NULL")
+            if "first_seen" not in columns:
+                # Rows from before the population columns date their first sighting to the
+                # last download that listed them; their attributes arrive with the next seed.
+                self.db.execute("UPDATE entities SET first_seen=observed_on")
             if existing in ("1", "2"):
                 self.db.execute("DROP TABLE IF EXISTS signals")
                 self.db.execute("DROP TABLE IF EXISTS loads")
@@ -206,6 +207,10 @@ class State:
                     (day, day, day),
                 )
                 self.set("organisasjonsform_labels", json.dumps(labels, ensure_ascii=False))
+                previous = self.get("entities_date")
+                if previous and previous < day:
+                    self.set("previous_entities_date", previous)
+                self.set("register_attributes_date", day)
                 self.db.execute(
                     "DELETE FROM work WHERE orgnr NOT IN (SELECT orgnr FROM entities WHERE active=1)"
                 )

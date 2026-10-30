@@ -35,6 +35,19 @@ def flatten(value, prefix=""):
     return out
 
 
+def outcome_label(status, message, pending):
+    """One word for an accounts lookup, shared by the observations and population tables."""
+    if pending or status is None:
+        return "pending"
+    if status == 200:
+        return "ok"
+    if status == 404:
+        return "not_found"
+    if unsupported_plan(status, message or ""):
+        return "unsupported"
+    return "error"
+
+
 def rows(state, current_only=False):
     join = "JOIN current_filings c USING(orgnr, id)" if current_only else ""
     query = f"SELECT f.* FROM filings f {join} ORDER BY f.orgnr, f.id"
@@ -135,17 +148,7 @@ def export_csv(state, destination, max_bytes):
             message = record.pop("pending_error") or record["message"]
             record["message"] = message
             record["snapshot_date"] = state.get("entities_date", "")
-            record["outcome"] = (
-                "pending"
-                if pending or status is None
-                else "ok"
-                if status == 200
-                else "not_found"
-                if status == 404
-                else "unsupported"
-                if unsupported_plan(status, message or "")
-                else "error"
-            )
+            record["outcome"] = outcome_label(status, message, pending)
             record["error_body"] = (
                 gzip.decompress(body).decode("utf-8", errors="replace")
                 if body is not None and status != 200
@@ -247,9 +250,12 @@ def export_release(
     population = None
     if not checkpoint_only:
         dataset = export_csv(state, destination, max_asset_bytes)
-        from .population import export_population
+        # Population tables need the register attributes of this month's seed; a checkpoint
+        # migrated from an older schema and exported before its next seed has none.
+        if state.get("register_attributes_date") == state.get("entities_date"):
+            from .population import export_population
 
-        population = export_population(state, destination, max_asset_bytes)
+            population = export_population(state, destination, max_asset_bytes)
 
     if snapshot_path:
         if state.get("seed_sha256") and sha256_file(snapshot_path) != state.get("seed_sha256"):
