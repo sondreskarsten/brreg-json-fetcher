@@ -1,5 +1,6 @@
 import csv
 import json
+from decimal import Decimal
 
 from conftest import entity, filing, response
 
@@ -92,7 +93,7 @@ def test_population_tables_cover_every_form_and_join_accounts_coverage(tmp_path)
     assert population["enk"]["n"] == 2 and population["enk"]["exits"] == 0
     by_form = {r["organisasjonsform"]: r for r in read(out, "register_by_form")}
     assert by_form["AS"]["n"] == "2" and by_form["AS"]["n_ok"] == "1"
-    assert by_form["AS"]["n_not_found"] == "1" and by_form["AS"]["coverage_ratio"] == "0.5"
+    assert by_form["AS"]["n_not_found"] == "1" and by_form["AS"]["coverage_ratio"] == "0.500000"
     assert (
         by_form["AS"]["share_capital_n"] == "2" and by_form["AS"]["share_capital_mean"] == "30000"
     )
@@ -101,7 +102,7 @@ def test_population_tables_cover_every_form_and_join_accounts_coverage(tmp_path)
     assert by_form["ENK"]["n_in_fetch_universe"] == "1" and by_form["ENK"]["n_ok"] == "1"
     assert by_form["ENK"]["n_not_in_universe"] == "1" and by_form["ENK"]["n_filed_year"] == "1"
     assert by_form["BANK"]["n_unsupported"] == "1" and by_form["BANK"]["n_filings"] == "0"
-    assert by_form["AS"]["n_filings"] == "1" and by_form["AS"]["share_of_total"] == "0.4"
+    assert by_form["AS"]["n_filings"] == "1" and by_form["AS"]["share_of_total"] == "0.400000"
     full = read(out, "register_population")
     cells = {
         (r["organisasjonsform"], r["fylke"], r["nace2"], r["has_employees"], r["vat_registered"])
@@ -109,7 +110,7 @@ def test_population_tables_cover_every_form_and_join_accounts_coverage(tmp_path)
     }
     assert ("ENK", "unknown", "unknown", "yes", "yes") in cells
     assert ("AS", "03", "43", "yes", "yes") in cells and ("AS", "11", "43", "no", "yes") in cells
-    assert all(r["share_of_form"] in ("0.5", "1.0") for r in full)
+    assert all(r["share_of_form"] in ("0.500000", "1.000000") for r in full)
     assert read(out, "register_changes") == []
     codebook = read(out, "register_codebook")
     assert {"dimension": "organisasjonsform", "code": "ENK", "label": "Form ENK"} in codebook
@@ -202,3 +203,23 @@ def test_schema_four_checkpoint_gains_population_columns_without_losing_rows(tmp
         assert json.loads(state.get("organisasjonsform_labels")) == {"AS": "Form AS"}
     finally:
         state.close()
+
+
+def test_register_attributes_accept_streamed_decimal_numbers():
+    from brreg_fetcher.state import register_attributes
+
+    row = register_attributes(
+        {
+            "forretningsadresse": {"kommunenummer": "0301"},
+            "naeringskode1": {"kode": "43.210"},
+            "antallAnsatte": 11,
+            "registrertIMvaregisteret": True,
+            "kapital": {"belop": Decimal("2375000.0")},
+            "registreringsdatoEnhetsregisteret": "1995-02-19",
+        }
+    )
+    assert row[2] == 11 and row[3] == 1 and row[9] == 2375000.0
+    assert register_attributes({"antallAnsatte": None, "kapital": {"belop": "n/a"}})[2:10:7] == (
+        None,
+        None,
+    )

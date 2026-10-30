@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from decimal import Decimal
 from pathlib import Path
 
 from .client import SourceError, decode_filings, unsupported_plan
@@ -32,6 +33,8 @@ def canonical(value):
 
 def register_attributes(entity):
     """Binning inputs for the population summary, taken from the register download."""
+    # The streaming parser yields JSON numbers as int or Decimal, never float.
+    numeric = (int, float, Decimal)
     business = entity.get("forretningsadresse") or {}
     postal = entity.get("postadresse") or {}
     employees = entity.get("antallAnsatte")
@@ -39,14 +42,16 @@ def register_attributes(entity):
     return (
         business.get("kommunenummer") or postal.get("kommunenummer"),
         (entity.get("naeringskode1") or {}).get("kode"),
-        int(employees) if isinstance(employees, (int, float)) else None,
+        int(employees)
+        if isinstance(employees, numeric) and not isinstance(employees, bool)
+        else None,
         int(bool(entity.get("registrertIMvaregisteret"))),
         int(bool(entity.get("registrertIForetaksregisteret"))),
         int(bool(entity.get("konkurs"))),
         int(bool(entity.get("underAvvikling"))),
         int(bool(entity.get("underTvangsavviklingEllerTvangsopplosning"))),
         entity.get("registreringsdatoEnhetsregisteret"),
-        float(capital) if isinstance(capital, (int, float)) else None,
+        float(capital) if isinstance(capital, numeric) and not isinstance(capital, bool) else None,
     )
 
 

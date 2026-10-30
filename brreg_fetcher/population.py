@@ -354,8 +354,8 @@ def table_rows(cells, keys, total, form_totals):
         form = row["organisasjonsform"]
         row.update(
             n=cell.n,
-            share_of_form=round(cell.n / form_totals[form], 6),
-            share_of_total=round(cell.n / total, 6),
+            share_of_form=f"{cell.n / form_totals[form]:.6f}",
+            share_of_total=f"{cell.n / total:.6f}",
         )
         for flag in FLAGS:
             row[f"n_{flag}"] = cell.flags[flag]
@@ -365,7 +365,7 @@ def table_rows(cells, keys, total, form_totals):
         for outcome in OUTCOMES:
             row[f"n_{outcome}"] = cell.outcomes[outcome]
         row["n_filings"] = cell.filings
-        row["coverage_ratio"] = round(cell.outcomes["ok"] / cell.n, 6)
+        row["coverage_ratio"] = f"{cell.outcomes['ok'] / cell.n:.6f}"
         yield row
 
 
