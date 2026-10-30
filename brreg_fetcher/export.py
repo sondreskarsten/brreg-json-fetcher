@@ -244,8 +244,12 @@ def export_release(
             shutil.copyfileobj(source, out, CHUNK_BYTES)
 
     dataset = None
+    population = None
     if not checkpoint_only:
         dataset = export_csv(state, destination, max_asset_bytes)
+        from .population import export_population
+
+        population = export_population(state, destination, max_asset_bytes)
 
     if snapshot_path:
         if state.get("seed_sha256") and sha256_file(snapshot_path) != state.get("seed_sha256"):
@@ -277,6 +281,7 @@ def export_release(
             "removed_from_register": "retained with register_status",
         },
         "dataset": dataset,
+        "population": population,
         "assets": {},
     }
     for path in sorted(destination.iterdir()):
@@ -340,6 +345,6 @@ def restore_checkpoint(source, destination):
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise SourceError("Checkpoint failed SQLite integrity check")
             row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if row is None or row[0] not in ("1", "2", "3", SCHEMA_VERSION):
+            if row is None or row[0] not in ("1", "2", "3", "4", SCHEMA_VERSION):
                 raise SourceError("Unsupported checkpoint schema")
         os.replace(restored, destination)

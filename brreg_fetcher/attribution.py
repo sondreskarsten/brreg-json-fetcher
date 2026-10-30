@@ -27,8 +27,9 @@ Changes by this mirror: monthly sampling; selection of every legal form, with
 sole proprietorships (ENK) included only when the register reports a filed
 annual account; retention of organisations that later leave the register, with
 a looked-up register status; conversion of accounts JSON to CSV, one filing per
-row; dotted field names; added observation/provenance metadata; compression
-and packaging. Missing values in flattened CSV are blank; complete filing JSON
+row; dotted field names; added observation/provenance metadata; aggregate
+register population tables by legal form, county, industry, employees and VAT
+registration; compression and packaging. Missing values in flattened CSV are blank; complete filing JSON
 and stored response bytes retain the source representation for inspection.
 The retained full entity-register download includes other legal forms too.
 

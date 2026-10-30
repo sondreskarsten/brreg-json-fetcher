@@ -89,7 +89,7 @@ def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
         )
     state = State(path)
     try:
-        assert state.get("schema_version") == "4"
+        assert state.get("schema_version") == "5"
         assert state.get("entities_date") is None
         state.sync_entities([entity(form="ENK", year=None)], "2026-10-06")
         assert state.summary()["eligible_entities"] == 0

@@ -47,6 +47,8 @@ sha256sum -c --ignore-missing SHA256SUMS
 | `enheter.json.gz` | Original full source download used for this month's seed |
 | `accounts.csv` | One row per returned regnskap (filing); up to six rows per organisation |
 | `observations.csv` | One row per eligible organisation: register status, accounts lookup status, actual observation time, response hash and error body |
+| `register_population.csv`, `register_by_*.csv` | Population summary of the whole register, ENK included, binned by legal form, county, industry, employees and VAT, with accounts coverage per cell |
+| `register_changes.csv`, `register_codebook.csv` | Monthly entries and exits per legal form, county and industry; code labels and binning rules |
 | `checkpoint.sqlite3.gz` | Resumable queue, frozen seed, historical filings, observations and exact response bytes |
 | `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
 | `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
@@ -66,6 +68,12 @@ The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year
 CSV files exceeding 1 GiB split at record boundaries into `accounts-00001.csv`, etc., each with its own header and checksum. Each file can be read independently; no CSV record is cut in half. Other oversized assets use ordered `.partNNNN` files with assembled checksums described in `manifest.json`. Published releases are immutable.
 
 Downstream use must retain the source attribution and licence link above and identify its own changes; see `DATA_NOTICE.md` in every release and [DATA_LICENSE.md](DATA_LICENSE.md).
+
+### Register population summary
+
+The accounts dataset covers organisations with public filings. To say how that sample relates to the whole register, every data release also summarises the complete Enhetsregisteret download, ENK and all other legal forms included, without any orgnr-level data. `register_population.csv` has one row per cell of `organisasjonsform × fylke × nace2 × has_employees × vat_registered`; `register_by_form.csv`, `register_by_form_fylke.csv`, `register_by_form_nace2.csv` and `register_by_form_employees_vat.csv` are the marginals for spreadsheet use. `fylke` is the first two digits of the business address kommunenummer (postal address as fallback, 2024 county codes), `nace2` the NACE division of `naeringskode1`, `has_employees` whether `antallAnsatte` is above zero. Each row carries `n` and its share of the legal form and of the register, counts for Foretaksregisteret, konkurs, avvikling and a filed year, distributions (n, mean, sd, p10, p25, median, p75, p90, min, max) of age since registration, employees among those with any, and share capital, and the accounts outcome counts for the cell (`n_ok`, `n_not_found`, `n_unsupported`, `n_pending`, `n_error`, `n_not_in_universe`), the number of filings and `coverage_ratio = n_ok / n`. Weighting the accounts sample by the inverse coverage ratio projects it onto the register population.
+
+`register_changes.csv` counts, per legal form, county and industry, organisations first seen in this month's download and organisations seen before but absent now, the latter split by the single-entity lookup (`deleted`, `not_found`, `still_registered`, or `unchecked` for ENK and other organisations outside the fetch universe). `register_codebook.csv` lists the codes with labels and the binning rules. Small cells are not suppressed: the register is public and the tables hold no orgnr. The manifest's `population` section repeats the totals by form and the ENK entries and exits.
 
 ### Change log between months
 

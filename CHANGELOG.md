@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Publish register population summaries with every data release: `register_population.csv` (organisasjonsform × fylke × NACE division × employees × VAT), four marginal tables, `register_changes.csv` (monthly entries and exits, ENK included, exits split by the single-entity lookup) and `register_codebook.csv`. Every cell carries counts, flags, age, employee and share-capital distributions, and the accounts-API outcome counts and coverage ratio needed to reweight the accounts sample onto the full register.
+- Checkpoint schema 5 stores the binning attributes and a first-seen date per entity; schema 4 checkpoints migrate in place and fill the attributes at the next seed.
+
 ## 0.5.0
 
 - Publish `changelog-YYYY-MM` after each data release: a field-level log of filings and lookup status compared with the previous month, shaped like an update feed, with a cumulative file across months. Recover a crash between the data release and its change log on the next run.
