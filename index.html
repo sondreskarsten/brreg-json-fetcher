@@ -74,7 +74,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:600}.source-table{font-si
 <details class="source-details"><summary>Last ned månedsdatasettet</summary>
 <p>Every month all Norwegian AS and ASA entities with a filed annual account are fetched once and published as a <code>data-YYYY-MM</code> release. Use the finished dataset instead of calling the API for each company.</p>
 <div id="releases"><p class="muted">Looking up the latest data release…</p></div>
-<p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/brreg-json-fetcher/releases">github.com/sondreskarsten/brreg-json-fetcher/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
+<p class="muted">All releases, including recovery checkpoints: <a href="https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases">github.com/sondreskarsten/regnskapsregisteret-dataset/releases</a>. Verify <code>SHA256SUMS</code> after downloading.</p>
 
 </details>
 <p class="muted">Visning oppdatert 7. oktober 2026 · Regnskapsoversikt og CSV</p>
@@ -82,7 +82,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:600}.source-table{font-si
 <script src="accounts.js?v=20261007-statements"></script>
 <script>
 (() => {
-  const REPO = "sondreskarsten/brreg-json-fetcher";
+  const REPO = "sondreskarsten/regnskapsregisteret-dataset";
   const API = "https://data.brreg.no/regnskapsregisteret/regnskap/";
   const ROUTES = [
     {name: "direct", url: u => u, headers: {Accept: "application/json"}},
