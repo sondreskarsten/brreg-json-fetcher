@@ -4,10 +4,10 @@ Questions about the source data that needed evidence to answer. Each folder hold
 question with what was found, what is still unexplained, the evidence, and a script that
 refetches it. Nothing here is part of the data releases or the installed package.
 
-| Folder | Question | Status | Evidence collected |
-|---|---|---|---|
-| [`konsern-without-selskap`](konsern-without-selskap/) | Why do nine KONSERN rows have a journalnr with no SELSKAP row? | Cause established, handling in the dataset undecided | 17 November 2026 |
-| [`by-id-reach`](by-id-reach/) | Are rows that left the list response still returned by id, and how are ids laid out? | Yes for every row tested, reach further back unknown | 17 November 2026 |
+| Folder | Question | Status | Evidence collected | Issue |
+|---|---|---|---|---|
+| [`konsern-without-selskap`](konsern-without-selskap/) | Why do nine KONSERN rows have a journalnr with no SELSKAP row? | Cause established, handling in the dataset undecided | 17 November 2026 | #13 |
+| [`by-id-reach`](by-id-reach/) | Are rows that left the list response still returned by id, and how are ids laid out? | Yes for every row tested, reach further back unknown | 17 November 2026 | #14 |
 
 ## Layout of a folder
 
