@@ -255,7 +255,7 @@ def test_sample_mode_ignores_organisations_missing_from_the_sample(tmp_path):
     sample = tmp_path / "sample"
     shutil.copytree(current_dir, sample)
     keep = {ORG["A"], ORG["I"]}
-    for name in ("accounts.csv", "observations.csv"):
+    for name in ("accounts.csv", "organisations.csv"):
         path = sample / name
         with path.open(newline="") as stream:
             reader = csv.DictReader(stream)
@@ -266,7 +266,7 @@ def test_sample_mode_ignores_organisations_missing_from_the_sample(tmp_path):
             writer.writeheader()
             writer.writerows(rows)
     manifest = json.loads((sample / "manifest.json").read_text())
-    for name in ("accounts.csv", "observations.csv"):
+    for name in ("accounts.csv", "organisations.csv"):
         manifest["assets"].pop(name)
     (sample / "manifest.json").write_text(json.dumps(manifest))
     full = build_changelog(prior_dir, sample, tmp_path / "full")
@@ -375,7 +375,7 @@ def test_status_columns_missing_from_the_prior_release_are_not_changes(tmp_path)
     prior_dir, current_dir = two_months(tmp_path)
     stripped = tmp_path / "stripped"
     shutil.copytree(prior_dir, stripped)
-    path = stripped / "observations.csv"
+    path = stripped / "organisations.csv"
     with path.open(newline="") as stream:
         reader = csv.DictReader(stream)
         keep = [c for c in reader.fieldnames if not c.startswith("register_")]
@@ -385,7 +385,7 @@ def test_status_columns_missing_from_the_prior_release_are_not_changes(tmp_path)
         writer.writeheader()
         writer.writerows(rows)
     manifest = json.loads((stripped / "manifest.json").read_text())
-    manifest["assets"].pop("observations.csv")
+    manifest["assets"].pop("organisations.csv")
     (stripped / "manifest.json").write_text(json.dumps(manifest))
     full = build_changelog(prior_dir, current_dir, tmp_path / "full")
     partial = build_changelog(stripped, current_dir, tmp_path / "partial")
@@ -527,3 +527,31 @@ def test_konsern_ended_is_logged_once_when_a_group_stops_filing_consolidated_acc
     )
     again = build_changelog(november, december, tmp_path / "dec")
     assert again["events"] == {}
+
+
+def test_unrequested_organisations_and_older_table_names_do_not_create_status_events(tmp_path):
+    a = ORG["A"]
+    filing_a = ok(f(a, 2025, 7000000, "2026100000"))
+    quiet = entity(ORG["B"], form="ENK", year=None)
+    october = make_release(
+        tmp_path, "data-2026-10", "2026-10-06", [entity(a), quiet], {a: filing_a}
+    )
+    november = make_release(
+        tmp_path, "data-2026-11", "2026-11-03", [entity(a), quiet], {a: filing_a}
+    )
+    # A release from before 0.8.0 names the table `observations` and lists requested rows only.
+    manifest = json.loads((october / "manifest.json").read_text())
+    with (october / "organisations.csv").open(newline="") as stream:
+        reader = csv.DictReader(stream)
+        old_columns = [c for c in reader.fieldnames if c in ("orgnr", "outcome", "http_status")]
+        rows = [{c: r[c] for c in old_columns} for r in reader if r["accounts_requested"] == "true"]
+    (october / "organisations.csv").unlink()
+    with (october / "observations.csv").open("w", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=old_columns, lineterminator="\r\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    dataset = manifest["dataset"]
+    dataset["observations"] = {**dataset.pop("organisations"), "files": ["observations.csv"]}
+    manifest["assets"].pop("organisations.csv")
+    (october / "manifest.json").write_text(json.dumps(manifest))
+    assert build_changelog(october, november, tmp_path / "log")["events"] == {}

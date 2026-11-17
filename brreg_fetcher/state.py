@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .client import SourceError, decode_filings, unsupported_plan
 
-SCHEMA_VERSION = "5"
+SCHEMA_VERSION = "6"
 REGISTER_COLUMNS = {
     "first_seen": "TEXT",
     "kommunenummer": "TEXT",
@@ -23,6 +23,8 @@ REGISTER_COLUMNS = {
     "tvangsavvikling": "INTEGER",
     "registreringsdato": "TEXT",
     "kapital": "REAL",
+    "har_ansatte": "INTEGER",
+    "navn": "TEXT",
 }
 UNIVERSE_VERSION = "all-forms-enk-if-filed-v1"
 
@@ -32,7 +34,7 @@ def canonical(value):
 
 
 def register_attributes(entity):
-    """Binning inputs for the population summary, taken from the register download."""
+    """Register attributes published per organisation, taken from the register download."""
     # The streaming parser yields JSON numbers as int or Decimal, never float.
     numeric = (int, float, Decimal)
     business = entity.get("forretningsadresse") or {}
@@ -52,6 +54,8 @@ def register_attributes(entity):
         int(bool(entity.get("underTvangsavviklingEllerTvangsopplosning"))),
         entity.get("registreringsdatoEnhetsregisteret"),
         float(capital) if isinstance(capital, numeric) and not isinstance(capital, bool) else None,
+        int(bool(entity.get("harRegistrertAntallAnsatte"))),
+        entity.get("navn"),
     )
 
 
@@ -92,7 +96,7 @@ class State:
             );
         """)
         existing = self.get("schema_version")
-        if existing not in (None, "1", "2", "3", "4", SCHEMA_VERSION):
+        if existing not in (None, "1", "2", "3", "4", "5", SCHEMA_VERSION):
             raise SourceError(f"Unsupported checkpoint schema {existing}")
         with self.db:
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(entities)")}
@@ -138,7 +142,7 @@ class State:
                 orgnr TEXT PRIMARY KEY, year INTEGER, organisasjonsform TEXT, kommunenummer TEXT,
                 naeringskode TEXT, antall_ansatte INTEGER, mva INTEGER, foretaksregisteret INTEGER,
                 konkurs INTEGER, under_avvikling INTEGER, tvangsavvikling INTEGER,
-                registreringsdato TEXT, kapital REAL
+                registreringsdato TEXT, kapital REAL, har_ansatte INTEGER, navn TEXT
             )
             """
         )
@@ -164,7 +168,7 @@ class State:
                     if form and label:
                         labels[form] = label
                     self.db.execute(
-                        "INSERT INTO incoming VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO incoming VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (orgnr, int(year) if year else None, form, *register_attributes(entity)),
                     )
                     count += 1
@@ -184,12 +188,14 @@ class State:
                     INSERT INTO entities(orgnr, year, active, observed_on, organisasjonsform,
                         register_status, register_deleted_date, register_checked_on, first_seen,
                         kommunenummer, naeringskode, antall_ansatte, mva, foretaksregisteret,
-                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital)
+                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital,
+                        har_ansatte, navn)
                     SELECT orgnr, year,
                         coalesce(organisasjonsform, '') != 'ENK' OR year IS NOT NULL,
                         ?, organisasjonsform, 'listed', NULL, ?, ?,
                         kommunenummer, naeringskode, antall_ansatte, mva, foretaksregisteret,
-                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital
+                        konkurs, under_avvikling, tvangsavvikling, registreringsdato, kapital,
+                        har_ansatte, navn
                     FROM incoming WHERE 1
                     ON CONFLICT(orgnr) DO UPDATE SET year=excluded.year,
                         active=max(entities.active, excluded.active),
@@ -202,7 +208,8 @@ class State:
                         foretaksregisteret=excluded.foretaksregisteret, konkurs=excluded.konkurs,
                         under_avvikling=excluded.under_avvikling,
                         tvangsavvikling=excluded.tvangsavvikling,
-                        registreringsdato=excluded.registreringsdato, kapital=excluded.kapital
+                        registreringsdato=excluded.registreringsdato, kapital=excluded.kapital,
+                        har_ansatte=excluded.har_ansatte, navn=excluded.navn
                 """,
                     (day, day, day),
                 )

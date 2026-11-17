@@ -96,7 +96,7 @@ def test_six_filings_and_failed_lookups_have_separate_grains(state, tmp_path):
     assert {r["regnskapstype"] for r in records} == {"SELSKAP", "KONSERN"}
     assert records[-1]["future_field"] == filings[-1]["future_field"]
     assert [json.loads(r["_meta.filing_json"]) for r in records] == filings
-    with (out / "observations.csv").open(newline="") as stream:
+    with (out / "organisations.csv").open(newline="") as stream:
         observations = list(csv.DictReader(stream))
     assert len(observations) == 3
     assert [r["outcome"] for r in observations] == ["not_found", "unsupported", "ok"]
@@ -111,7 +111,7 @@ def test_six_filings_and_failed_lookups_have_separate_grains(state, tmp_path):
     manifest = export_release(state, out)
     with (out / "accounts.csv").open(newline="") as stream:
         assert list(csv.DictReader(stream)) == []
-    with (out / "observations.csv").open(newline="") as stream:
+    with (out / "organisations.csv").open(newline="") as stream:
         records = {r["orgnr"]: r for r in csv.DictReader(stream)}
     assert len(records) == 3
     assert {r["outcome"] for r in records.values()} == {"pending"}
@@ -136,3 +136,50 @@ def test_csv_parts_are_independently_readable_with_embedded_newlines(tmp_path):
     assert restored == [{"id": str(r["id"]), "text": r["text"]} for r in records]
     with pytest.raises(SourceError, match="exceeds"):
         write_csv([{"text": "x" * 100}], ["text"], tmp_path, "oversize", 80)
+
+
+def test_organisations_carry_register_attributes_and_accounts_lead_with_their_key(state, tmp_path):
+    state.start_cycle(
+        [
+            entity(
+                navn="EKSEMPEL AS",
+                forretningsadresse={"kommunenummer": "0301"},
+                naeringskode1={"kode": "43.210"},
+                harRegistrertAntallAnsatte=True,
+                antallAnsatte=None,
+                registrertIMvaregisteret=True,
+                registreringsdatoEnhetsregisteret="1995-02-19",
+            ),
+            entity("974760673", form="ENK", year=None, harRegistrertAntallAnsatte=False),
+        ],
+        "2026-10-06",
+    )
+    state.record("923609016", "2026-10", response(filing()), "2026-10-06T12:00:00+00:00")
+    out = tmp_path / "release"
+    manifest = export_release(state, out)
+    with (out / "organisations.csv").open(newline="") as stream:
+        orgs = {r["orgnr"]: r for r in csv.DictReader(stream)}
+    company = orgs["923609016"]
+    # Brønnøysundregistrene withholds small employee counts; the flag is the reliable field.
+    assert (company["har_registrert_antall_ansatte"], company["antall_ansatte"]) == ("true", "")
+    assert (company["navn"], company["kommunenummer"], company["naeringskode"]) == (
+        "EKSEMPEL AS",
+        "0301",
+        "43.210",
+    )
+    assert (company["registrert_i_mvaregisteret"], company["outcome"]) == ("true", "ok")
+    assert orgs["974760673"]["har_registrert_antall_ansatte"] == "false"
+    assert orgs["974760673"]["accounts_requested"] == "false"
+    with (out / "accounts.csv").open(newline="") as stream:
+        header = next(csv.reader(stream))
+    assert header[:6] == [
+        "journalnr",
+        "regnskapstype",
+        "_meta.orgnr",
+        "_meta.fiscal_year",
+        "regnskapsperiode.fraDato",
+        "regnskapsperiode.tilDato",
+    ]
+    assert manifest["dataset"]["accounts"]["key"] == ["journalnr", "regnskapstype"]
+    assert manifest["dataset"]["organisations"]["key"] == ["orgnr"]
+    assert not list(out.glob("register_*.csv")) and "population" not in manifest

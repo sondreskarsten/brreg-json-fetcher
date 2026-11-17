@@ -164,10 +164,17 @@ def publish_changelog(repo, cycle, output, target):
             "manifest.json",
             "accounts*.csv",
             "observations*.csv",
+            "organisations*.csv",
         )
     compare = output / "compare"
     prior_dir = download_release(
-        repo, prior_tag, compare / prior_tag, "manifest.json", "accounts*.csv", "observations*.csv"
+        repo,
+        prior_tag,
+        compare / prior_tag,
+        "manifest.json",
+        "accounts*.csv",
+        "observations*.csv",
+        "organisations*.csv",
     )
     previous_tag = previous_release(releases, "changelog", cycle)
     previous_dir = None
@@ -227,7 +234,7 @@ def publish(repo, directory, tag, target):
             if checkpoint
             else ""
             if changelog
-            else "The monthly queue is complete. Check observations for 404 and unsupported-plan outcomes. "
+            else "The monthly queue is complete. organisations.csv gives the outcome for every organisation. "
             "Account values were observed across the collection window, not at one instant.\n\n"
         )
         + "Verify SHA256SUMS. Large files use ordered parts described by manifest.json.\n"

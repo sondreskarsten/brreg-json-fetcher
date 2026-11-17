@@ -114,7 +114,7 @@ def test_removed_entity_is_looked_up_kept_and_still_fetched(state, tmp_path):
     fourth = collect(state, client, date(2026, 11, 4), **options)
     assert fourth["register_lookups"] == 0
     export_release(state, tmp_path / "release")
-    with (tmp_path / "release/observations.csv").open(newline="") as stream:
+    with (tmp_path / "release/organisations.csv").open(newline="") as stream:
         records = {r["orgnr"]: r for r in csv.DictReader(stream)}
     gone, listed = records["923609016"], records["974760673"]
     assert gone["outcome"] == "ok" and gone["register_status"] == "deleted"

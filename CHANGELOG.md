@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
+
+Data format v2. Releases from this version differ from `data-2026-11` and earlier:
+
+- `organisations.csv` replaces `observations.csv` and the `register_*.csv` summary tables. It has one row per organisation in the register, sole proprietorships included, with name, legal form, municipality, industry code, `har_registrert_antall_ansatte`, employee count, VAT and Foretaksregisteret registration, status flags, registration date, capital, register status and the accounts outcome. Organisations whose accounts are not requested have `accounts_requested` = `false` and `outcome` = `not_requested`.
+- `accounts.csv` starts with its key columns: `journalnr`, `regnskapstype`, `_meta.orgnr`, `_meta.fiscal_year`, period start and end. A row is identified by `journalnr` + `regnskapstype`.
+- The manifest's `dataset` section names each table's grain and key, and no longer has a `population` section.
+- Checkpoint schema 6 adds the organisation name and the registered-employees flag.
 
 - The repository is renamed to `regnskapsregisteret-dataset`; links, the lookup page address, the citation file and the notice written into each release now use the new name. Old GitHub links redirect.
 - README rewritten as a product page: what the dataset is, what you get, key facts at a glance, download steps, file reference, licence and citation.

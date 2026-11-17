@@ -75,7 +75,7 @@ Exit code `2` means account errors remain; `1` means a source/configuration/expo
 
 ### Export details
 
-The CSV layout is described under [Reading the CSV](../README.md#reading-the-csv). Pending rows occur only in incomplete local exports.
+The CSV layout is described under [Reading the CSV](../README.md#accounts). Pending rows occur only in incomplete local exports.
 
 At each new month, the current filing view is cleared and rebuilt. Exports use only this cycle's observations; older successes cannot masquerade as new observations. Historical filings and exact response bytes remain in the checkpoint.
 
@@ -165,7 +165,7 @@ Source spellings such as `regnkapsprinsipper` and `sumInnskuttEgenkaptial` are p
 
 The supplied research identifies the five additional asset leaves, the three tax/extraordinary-result leaves, `salgsinntekter`, `loennskostnad`, `annenRentekostnad`, and `rentekostnadSammeKonsern` as additions on 1 October 2026, including retroactive additions to existing filings. CSV discovers the union of field paths across all current filings before writing and includes complete filing JSON in `_meta.filing_json`. Missing and explicit null leaves are blank in flattened columns; the JSON representation preserves the distinction.
 
-The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year(tilDato))`. The **filing identity** is its `id`. A new ID for the same logical key is a resubmission. `journalnr` can be shared by SELSKAP and KONSERN and is not a unique filing key. The collector also hashes content: a changed response with the same ID is recorded as a content revision, not a resubmission.
+A regnskap is identified by `journalnr`; a row by `journalnr` + `regnskapstype`. `id` is unique per row and, where a regnskap has both types, the KONSERN `id` is the SELSKAP `id` plus two. Across months the collector follows `(organisasjonsnummer, regnskapstype, year(tilDato))`: a new `journalnr` for that key is a resubmission, and changed content under the same `journalnr` is a revision at the source.
 
 Other API paths, relative to `/regnskapsregisteret/regnskap`, include `/{orgnr}/{id}`, `/aarsregnskap/kopi/{orgnr}/aar`, `/aarsregnskap/kopi/{orgnr}/{aar}`, `/aarsregnskap/mellombalanse/{orgnr}/aar`, and `/aarsregnskap/mellombalanse/{orgnr}/{id}`. PDF copies and interim-balance retrieval are outside this collector's scope.
 
