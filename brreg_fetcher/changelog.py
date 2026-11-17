@@ -257,6 +257,22 @@ def filing_events(events, orgnr, prior, current):
             old=old,
             new=new,
         )
+    # A resubmission that corrects the period start keeps its type and fiscal year but not
+    # its full key; pair it instead of reporting a deletion and a new filing.
+    for key in sorted(prior_only):
+        same_year = [k for k in sorted(current_only) if k[:2] == key[:2]]
+        if len(same_year) != 1 or sum(k[:2] == key[:2] for k in prior_only) != 1:
+            continue
+        old, new = prior_only.pop(key), current_only.pop(same_year[0])
+        changed = old["journalnr"] != new["journalnr"] or old["id"] != new["id"]
+        events.event(
+            orgnr,
+            "Resubmitted" if changed else "Revised",
+            list(field_changes(old["filing"], new["filing"])),
+            key=key[:2],
+            old=old,
+            new=new,
+        )
     for key in sorted(set(prior) & set(current)):
         old, new = prior[key], current[key]
         if old["sha256"] == new["sha256"] and old["id"] == new["id"]:
@@ -267,12 +283,12 @@ def filing_events(events, orgnr, prior, current):
             kind = "Revised"
         operations = list(field_changes(old["filing"], new["filing"]))
         events.event(orgnr, kind, operations, key=key[:2], old=old, new=new)
-    newest = {}
-    for key in current:
-        newest[key[0]] = max(newest.get(key[0], 0), key[1])
+    # The API returns the latest three fiscal years across both account types, so an old
+    # KONSERN year leaves when a newer SELSKAP year arrives, and the other way round.
+    newest = max((key[1] for key in current), default=None)
     for key in sorted(prior_only):
         old = prior_only[key]
-        aged = key[0] in newest and key[1] < newest[key[0]] - (WINDOW_YEARS - 1)
+        aged = newest is not None and key[1] < newest - (WINDOW_YEARS - 1)
         events.event(
             orgnr,
             "AgedOut" if aged else "Sletting",
@@ -283,6 +299,37 @@ def filing_events(events, orgnr, prior, current):
     for key in sorted(current_only):
         new = current_only[key]
         events.event(orgnr, "Ny", [("add", "", None, new["sha256"])], key=key[:2], new=new)
+    konsern_ended(events, orgnr, prior, current)
+
+
+def konsern_ended(events, orgnr, prior, current):
+    """A company that filed consolidated accounts for one year and none for the next.
+
+    Consolidated accounts are part of the same submission as the company accounts, so a
+    SELSKAP filing without a KONSERN filing for its year means the submission had none.
+    """
+    konsern = {key[1] for key in (*prior, *current) if key[0] == "KONSERN"}
+    current_konsern = {key[1] for key in current if key[0] == "KONSERN"}
+    prior_keys = {key[:2] for key in prior}
+    for key in sorted(current):
+        kind, year = key[:2]
+        if kind != "SELSKAP" or year in current_konsern or year - 1 not in konsern:
+            continue
+        # Already the case last month unless the SELSKAP year is new or its KONSERN left.
+        if ("SELSKAP", year) in prior_keys and ("KONSERN", year) not in prior_keys:
+            continue
+        new = current[key]
+        parent = ((new["filing"] or {}).get("virksomhet") or {}).get("morselskap")
+        events.event(
+            orgnr,
+            "KonsernEnded",
+            [
+                ("replace", "konsernregnskap.last_fiscal_year", year - 1, None),
+                ("replace", "virksomhet.morselskap", None, parent),
+            ],
+            key=key[:2],
+            new=new,
+        )
 
 
 def filings_of(db, side, orgnr):
@@ -436,6 +483,7 @@ def build_changelog(
                 "KeyChanged",
                 "AgedOut",
                 "Sletting",
+                "KonsernEnded",
                 "Status",
             ],
             "delta": delta,
