@@ -1,4 +1,4 @@
-# The open-regnskap collector
+# The regnskapsregisteret-dataset collector
 
 How the monthly dataset described in the [README](../README.md) is produced, recovered and validated. The Python package is `brreg_fetcher`; the command is `brreg-fetch`.
 

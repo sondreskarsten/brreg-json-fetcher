@@ -1,8 +1,8 @@
-# open-regnskap
+# regnskapsregisteret-dataset
 
 **The annual-accounts key figures Regnskapsregisteret publishes, for every organisation it serves, as one monthly CSV download.**
 
-open-regnskap is a monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before. It holds what the source API returns: the latest three fiscal years per organisation, and no figures for banks, insurers and other organisations whose accounting plan the API does not support. Those are listed with that outcome instead of being left out.
+regnskapsregisteret-dataset is a monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before. It holds what the source API returns: the latest three fiscal years per organisation, and no figures for banks, insurers and other organisations whose accounting plan the API does not support. Those are listed with that outcome instead of being left out.
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
@@ -12,7 +12,7 @@ Unofficial mirror maintained by [sondreskarsten](https://github.com/sondreskarst
 
 The source API answers one organisation per request. Anyone who needs many companies has to send hundreds of thousands of requests, and so does the next person, and the one after. This dataset does that once a month so nobody else has to.
 
-| | Batch lookups against the API | open-regnskap |
+| | Batch lookups against the API | regnskapsregisteret-dataset |
 | --- | --- | --- |
 | Effort | about 720,000 requests, five days at a polite rate | one download |
 | Load on Brønnøysundregistrene | once per researcher, per project, per rerun | once per month in total |
@@ -26,15 +26,30 @@ Corrections are not rare. Between the October and November 2026 releases, 390 fi
 
 **When to call Brønnøysundregistrene instead:** you need one company, you need today's value, or you need something with legal standing. For a single company use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/) or [data.brreg.no](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs) directly.
 
-## What is in a release
+## Data product definition
+
+| | |
+| --- | --- |
+| **Product** | A monthly, complete, immutable copy of the annual-accounts key figures (nøkkeltall) that Regnskapsregisteret publishes through its open API |
+| **Source** | `data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`, one request per organisation, plus the full Enhetsregisteret download as the list of organisations |
+| **Population** | Every organisation in Enhetsregisteret, except sole proprietorships (ENK) without a filed annual account. Organisations that later leave the register are kept |
+| **Unit** | One filing: organisation × account type (SELSKAP or KONSERN) × fiscal year |
+| **Content per filing** | About 30 key figures: total assets, current and fixed assets, equity, debt, revenue, operating result, financial items, tax, annual result; plus period, currency, accounting plan, audit and accounting-principle flags, filing id and journal number |
+| **Depth** | The latest three fiscal years the API returns at collection time. Earlier years exist only in earlier releases |
+| **Cadence** | One release per month. The register list is taken at the start of the month and collection takes about five days; each row carries its own observation time |
+| **Format** | UTF-8 CSV with header, one file set per release, described by `manifest.json` and verified by `SHA256SUMS` |
+| **Stability** | A published release never changes. Columns are the union of fields the source returned that month, so new source fields appear as new columns |
+| **Licence** | Source data under NLOD 2.0 with attribution to Brønnøysundregistrene; see `DATA_NOTICE.md` in each release |
+
+**Each month delivers three things:**
 
 | Release | Contents |
 | --- | --- |
-| `data-YYYY-MM` | The dataset for one month: accounts, one outcome per organisation, register population tables |
-| `changelog-YYYY-MM` | What changed since the previous month, one row per changed field, plus the cumulative log |
-| `checkpoint-…` (prerelease) | Recovery state of a collection in progress. Not a dataset; ignore these |
+| `data-YYYY-MM` | `accounts*.csv`, the filings. `observations.csv`, one outcome per organisation: accounts returned, none on file, unsupported accounting plan, and register status. `register_*.csv`, population tables for the whole register, ENK included |
+| `changelog-YYYY-MM` | Every difference from the previous month, one row per changed field: new filings, resubmissions, aged-out years, status changes, groups that stopped filing consolidated accounts. Plus the cumulative log |
+| `checkpoint-…` (prerelease) | Recovery state of a collection in progress. Not part of the product; ignore these |
 
-Coverage: every organisation in Enhetsregisteret except sole proprietorships without a filed annual account. Organisations that later leave the register are kept, with a looked-up status and deletion date.
+**Not in the product:** the full annual accounts, notes, auditor's report or PDF; line items below the key figures; figures for organisations whose accounting plan the source API does not serve (banks, insurers, pension funds and some others), which are listed with that outcome; anything older than the first release, `data-2026-10`, which covered AS and ASA only.
 
 ## Get the data
 
@@ -126,7 +141,7 @@ The cumulative file refuses to chain onto a previous change log for any cycle ot
 
 Cite the release tag, which is immutable:
 
-> open-regnskap, release `data-2026-11`. Unofficial monthly mirror of Regnskapsregisteret key figures. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene. https://github.com/sondreskarsten/brreg-json-fetcher/releases/tag/data-2026-11
+> regnskapsregisteret-dataset, release `data-2026-11`. Unofficial monthly mirror of Regnskapsregisteret key figures. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene. https://github.com/sondreskarsten/brreg-json-fetcher/releases/tag/data-2026-11
 
 ## Look up one organisation
 

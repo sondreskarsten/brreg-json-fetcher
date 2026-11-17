@@ -2,7 +2,7 @@
 
 ## 0.7.0
 
-- The project is presented as **open-regnskap**, a data source. The README leads with what the dataset is and why to use it instead of batch lookups against the source API; collector documentation moves to `docs/COLLECTOR.md`. Repository URLs are unchanged until the repository itself is renamed, after which GitHub redirects them.
+- The project is presented as **regnskapsregisteret-dataset**, a data source. The README leads with a data product definition and why to use the dataset instead of batch lookups against the source API; collector documentation moves to `docs/COLLECTOR.md`. Repository URLs are unchanged until the repository itself is renamed, after which GitHub redirects them.
 - Add `CITATION.cff`. Remove the retired Cloud Run entry points `Dockerfile`, `runner.py` and `parser.py`; use `brreg-fetch collect` and `brreg-fetch export`.
 
 - Change log: new `KonsernEnded` event when a company that filed consolidated accounts for one fiscal year files only company accounts for the next. Consolidated accounts are part of the same submission, so their absence is a property of the filing, not a delay.
