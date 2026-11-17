@@ -16,7 +16,7 @@ An independent, unofficial mirror maintained by [sondreskarsten](https://github.
 - **A history that does not disappear.** Every month is a separate, permanent release. When a company's figures are corrected or an old year drops out at the source, the earlier state is still here.
 - **Corrections you can see.** Companies resubmit accounts. The monthly change log lists each resubmission and every figure that changed, with old and new value. From October to November 2026 that was 390 filings.
 - **No silent gaps.** Every organisation has a recorded outcome: accounts returned, no accounts on file, accounting plan not available from the source, or removed from the register and when.
-- **Context for your sample.** Summary tables of the full register by legal form, county, industry, employees and VAT registration, sole proprietorships included, show how the organisations with accounts compare with those without.
+- **The full register alongside.** One row per organisation in Enhetsregisteret, sole proprietorships included: name, legal form, municipality, industry code, whether it has employees, VAT registration and more. Join it to the accounts on `orgnr` to compare organisations with and without accounts.
 - **Results others can reproduce.** A release never changes after publication and every file has a checksum. Cite the release tag and anyone can retrieve exactly the same data.
 
 ## At a glance
@@ -25,7 +25,7 @@ An independent, unofficial mirror maintained by [sondreskarsten](https://github.
 | --- | --- |
 | **Source** | Regnskapsregisteret's open key-figures API and the Enhetsregisteret register download, both from Brønnøysundregistrene |
 | **Coverage** | All organisations in Enhetsregisteret except sole proprietorships (ENK) without a filed annual account. Organisations that later leave the register are kept |
-| **One row is** | One filing: organisation × account type (company or consolidated) × fiscal year |
+| **Tables** | `accounts`: one row per regnskap and account type, identified by `journalnr` + `regnskapstype`. `organisations`: one row per organisation, identified by `orgnr` |
 | **Figures per filing** | About 30: total, current and fixed assets; equity; short- and long-term debt; revenue; operating result; financial items; tax; annual result. Plus period, currency, audit and accounting-principle flags |
 | **Years** | The latest three fiscal years available at the source each month |
 | **Updated** | Monthly. The register list is taken at the start of the month; collection takes about five days and every row carries its observation time |
@@ -37,18 +37,18 @@ An independent, unofficial mirror maintained by [sondreskarsten](https://github.
 
 | Release | Contents |
 | --- | --- |
-| `data-YYYY-MM` | `accounts*.csv`: the filings. `observations.csv`: one outcome per organisation. `register_*.csv`: summary tables of the whole register |
+| `data-YYYY-MM` | `accounts*.csv`: the key figures. `organisations.csv`: every organisation in the register, with its attributes and whether accounts were found |
 | `changelog-YYYY-MM` | `changes-YYYY-MM.csv`: every difference from the previous month. `changes.csv`: all months so far |
 | `checkpoint-…` (prerelease) | Working state of a collection in progress. Not a dataset; ignore these |
 
 ### What it does not contain
 
-The full annual accounts, notes, auditor's report and PDF are not included, nor line items below the key figures. Banks, insurers, pension funds and a few other groups use accounting plans the source does not publish key figures for; they are listed in `observations.csv` with that outcome. For a legally authoritative or up-to-the-minute figure for one organisation, consult Brønnøysundregistrene directly.
+The full annual accounts, notes, auditor's report and PDF are not included, nor line items below the key figures. Banks, insurers, pension funds and a few other groups use accounting plans the source does not publish key figures for; they are listed in `organisations.csv` with that outcome. For a legally authoritative or up-to-the-minute figure for one organisation, consult Brønnøysundregistrene directly.
 
 ## Download
 
 1. Open the [releases page](https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases) and choose the newest release whose tag starts with `data-`.
-2. Download the files you need from its asset list. For most uses that is the `accounts` files and `observations.csv`.
+2. Download the files you need from its asset list. For most uses that is the `accounts` files and `organisations.csv`.
 3. For the monthly changes, open the matching `changelog-` release.
 
 The accounts are split into several files of at most 1 GB (`accounts-00001.csv`, `accounts-00002.csv`, …). Each part has its own header and can be opened on its own; stack them for the full table.
@@ -65,7 +65,7 @@ python3 - <<'PYCSV' > csv-files.txt
 import json
 with open("manifest.json") as source:
     dataset = json.load(source)["dataset"]
-for table in ("accounts", "observations"):
+for table in ("accounts", "organisations"):
     for name in dataset[table]["files"]:
         print(name)
 PYCSV
@@ -80,36 +80,57 @@ sha256sum -c --ignore-missing SHA256SUMS
 
 </details>
 
-| Asset | Contents |
+## The tables
+
+| File | One row per | Identified by |
+| --- | --- | --- |
+| `accounts.csv` (in numbered parts) | regnskap and account type | `journalnr` + `regnskapstype` |
+| `organisations.csv` | organisation in Enhetsregisteret | `orgnr` |
+
+Join them on `accounts._meta.orgnr = organisations.orgnr`.
+
+Other files in a release: `enheter.json.gz` (the complete register download the month is based on), `manifest.json` (file list, row counts, columns), `SHA256SUMS`, `DATA_NOTICE.md` (attribution and licence), and `checkpoint.sqlite3.gz` (the collector's working database, including the exact responses received).
+
+`data-2026-11` holds 1,240,276 account rows from 1,227,343 regnskap, for 719,866 organisations out of 1,184,327 in the register. `data-2026-10` has the accounts for AS and ASA only and predates `organisations.csv`.
+
+### accounts
+
+**What a regnskap is.** `journalnr` is the number Regnskapsregisteret assigns to a submitted annual account. It identifies one regnskap, for one organisation and one fiscal year, and is the number the filed document carries. The first four digits are the year it was received.
+
+**Company and consolidated accounts.** A regnskap always has company accounts (`regnskapstype` = `SELSKAP`). A parent company's regnskap can also contain consolidated accounts for the group (`KONSERN`). Both rows then share the same `journalnr`, so `journalnr` + `regnskapstype` identifies a row. In `data-2026-11`, 12,933 regnskap contain both.
+
+**Following a company over time.** `_meta.orgnr` + `regnskapstype` + `_meta.fiscal_year` identifies the accounts for one organisation and year. There is at most one row for each in a release. If its `journalnr` differs from an earlier release, the accounts were resubmitted.
+
+**Columns.** The first six are the keys: `journalnr`, `regnskapstype`, `_meta.orgnr`, `_meta.fiscal_year`, `regnskapsperiode.fraDato`, `regnskapsperiode.tilDato`. The key figures follow as dotted names that mirror the source, for example `eiendeler.sumEiendeler` (total assets), `egenkapitalGjeld.egenkapital.sumEgenkapital` (equity) and `resultatregnskapResultat.aarsresultat` (annual result). Amounts are in whole units of `valuta`. A blank cell means the figure was not reported; it does not mean zero. `_meta.fiscal_year` is the year of `regnskapsperiode.tilDato`.
+
+Also present: `id`, the source's internal row number (unique per row; `journalnr` + `regnskapstype` is the identifier to use); `_meta.first_seen` and `_meta.last_seen`, when this collection first and last saw the row; `_meta.filing_json`, the complete source record; and `_meta.snapshot_date`, the date of the month's register download.
+
+New fields at the source appear as new columns, so select columns by name. Source spellings are kept as they are, including `regnkapsprinsipper` and `sumInnskuttEgenkaptial`.
+
+**Good to know.** A consolidated row occasionally has a different `journalnr` from the company row for the same year (9 cases in `data-2026-11`). In every such case the annual-accounts document Brønnøysundregistrene currently holds for that year is the company row's regnskap, and it contains no consolidated accounts. Treat a `KONSERN` row whose `journalnr` has no `SELSKAP` row as left over from a submission that is no longer the current one.
+
+### organisations
+
+Every organisation in the month's register download, plus organisations from earlier months that have since left the register.
+
+| Column | Meaning |
 | --- | --- |
-| `enheter.json.gz` | Original full source download used for this month's seed |
-| `accounts.csv` | One row per returned regnskap (filing); up to six rows per organisation |
-| `observations.csv` | One row per eligible organisation: register status, accounts lookup status, actual observation time, response hash and error body |
-| `register_population.csv`, `register_by_*.csv` | Population summary of the whole register, ENK included, binned by legal form, county, industry, employees and VAT, with accounts coverage per cell |
-| `register_changes.csv`, `register_codebook.csv` | Monthly entries and exits per legal form, county and industry; code labels and binning rules |
-| `checkpoint.sqlite3.gz` | Resumable queue, frozen seed, historical filings, observations and exact response bytes |
-| `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
-| `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
-
-`data-2026-11` covers 719,866 organisations from a register of 1,184,327 and holds 1,240,276 filings. `data-2026-10` covered only AS and ASA with a reported annual-account year: 402,763 organisations. Counts change every month.
-
-### Reading the CSV
-
-CSV uses UTF-8, comma separators, a header, and standard quoting for commas, double quotes and embedded newlines. Account fields are flattened into dotted columns (for example `eiendeler.sumEiendeler`). Columns are discovered from every filing, including newly introduced fields, so read the header rather than relying on a fixed column list. Missing fields are blank. `_meta.orgnr`, `_meta.fiscal_year` and `_meta.snapshot_date` identify the organisation, fiscal year and seed date. `regnskapstype` distinguishes SELSKAP and KONSERN; `id` and `journalnr` are preserved. `_meta.filing_json` preserves the complete filing, including the distinction between absent and null fields. Empty objects and arrays are JSON text.
-
-An organisation returning three years of SELSKAP and three years of KONSERN produces six account rows. A 404 or unsupported plan produces no account row; its outcome remains in `observations.csv`. Banks, insurers, pension funds and other organisations whose accounting plan the BRREG API does not support appear there with `outcome` = `unsupported` and the API's own message (for example `oppstillingsplan som ikke er stottet (BANK)`); organisations with no accounts on file appear with `outcome` = `not_found`.
-
-`observations.csv` also carries three register columns. `register_status` is `listed` when the organisation was in this month's register download. When an organisation collected in an earlier month is missing from the download, it is kept and looked up individually at `GET /enhetsregisteret/api/enheter/{orgnr}`: `deleted` (with `register_deleted_date` = BRREG's `slettedato`), `not_found` (the register no longer knows the number), `still_registered` (the single lookup still returns it, so it was absent from the bulk file for another reason), `lookup_failed` (counted like a failed fetch: the month stays open and the lookup is retried on the next run), or `missing` (not yet looked up; only in incomplete local exports). `register_checked_on` is the date of that status. Removed organisations are still queried for accounts each month, so their last filings stay in `accounts.csv` for as long as the API returns them. A valid empty array also produces no account rows, with a successful observation. The monthly seed date is not the actual lookup date: observation timestamps describe when the data was fetched during the multi-day collection, which can span days. The monthly dataset is a collection made during that window, **not a simultaneous month-end observation**. The manifest records the seed date and collection start/finish.
-
-The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year(tilDato))`. The **filing identity** is its `id`. A new ID for the same logical key is a resubmission. `journalnr` can be shared by SELSKAP and KONSERN and is not a unique filing key.
-
-CSV files exceeding 1 GiB split at record boundaries into `accounts-00001.csv`, etc., each with its own header and checksum. Each file can be read independently; no CSV record is cut in half. Other oversized assets use ordered `.partNNNN` files with assembled checksums described in `manifest.json`. Published releases are immutable.
-
-### Register population summary
-
-The accounts dataset covers organisations with public filings. To say how that sample relates to the whole register, every data release also summarises the complete Enhetsregisteret download, ENK and all other legal forms included, without any orgnr-level data. `register_population.csv` has one row per cell of `organisasjonsform × fylke × nace2 × has_employees × vat_registered`; `register_by_form.csv`, `register_by_form_fylke.csv`, `register_by_form_nace2.csv` and `register_by_form_employees_vat.csv` are the marginals for spreadsheet use. `fylke` is the first two digits of the business address kommunenummer (postal address as fallback, 2024 county codes), `nace2` the NACE division of `naeringskode1`, `has_employees` whether `antallAnsatte` is above zero. Each row carries `n` and its share of the legal form and of the register, counts for Foretaksregisteret, konkurs, avvikling and a filed year, distributions (n, mean, sd, p10, p25, median, p75, p90, min, max) of age since registration, employees among those with any, and share capital, and the accounts outcome counts for the cell (`n_ok`, `n_not_found`, `n_unsupported`, `n_pending`, `n_error`, `n_not_in_universe`), the number of filings and `coverage_ratio = n_ok / n`. Weighting the accounts sample by the inverse coverage ratio projects it onto the register population.
-
-Organisations collected in an earlier month that have since left the register stay in the population, so `n_listed` is this month's live register and `n_removed` the retained departures; `n = n_listed + n_removed`. `register_changes.csv` counts, per legal form, county and industry, organisations in this month's download that were not in the previous one, and organisations in the previous download that are absent now, the latter split by the single-entity lookup (`deleted`, `not_found`, `still_registered`, or `unchecked` for ENK and other organisations outside the fetch universe). The first download has no predecessor and logs no changes. A checkpoint migrated from an older schema publishes its population tables from the first seed taken with the new code onward. `register_codebook.csv` lists the codes with labels and the binning rules. Small cells are not suppressed: the register is public and the tables hold no orgnr. The manifest's `population` section repeats the totals by form and the ENK entries and exits.
+| `orgnr` | Organisation number |
+| `navn`, `organisasjonsform` | Name and legal form code (AS, ENK, NUF, …) |
+| `kommunenummer` | Municipality of the business address, or the postal address if there is none. The first two digits are the county |
+| `naeringskode` | Main industry code (NACE). The first two digits are the industry division |
+| `har_registrert_antall_ansatte` | `true` if the organisation has registered employees. Use this to tell employers from non-employers |
+| `antall_ansatte` | Number of employees where the register publishes it. Blank for many employers, so it is not a test for having employees |
+| `registrert_i_mvaregisteret`, `registrert_i_foretaksregisteret` | Registered for VAT; registered in the Register of Business Enterprises |
+| `konkurs`, `under_avvikling`, `under_tvangsavvikling` | Bankruptcy, liquidation, compulsory liquidation |
+| `registreringsdato_enhetsregisteret`, `kapital` | Registration date; share capital where registered |
+| `latest_filing_year` | Latest year with a filed annual account, according to the register |
+| `first_seen`, `last_listed` | First and latest register download that included the organisation |
+| `register_status` | `listed` if in this month's register. Otherwise the result of looking it up: `deleted`, `not_found` or `still_registered` |
+| `register_deleted_date` | Deletion date, when deleted |
+| `accounts_requested` | `true` if accounts were requested for this organisation: every organisation except sole proprietorships without a filed annual account |
+| `outcome` | `ok`: accounts are in `accounts.csv`. `not_found`: none on file. `unsupported`: the organisation uses an accounting plan the source does not publish key figures for. `not_requested`: see above |
+| `observed_at`, `http_status`, `message`, `error_body`, `response_sha256` | When the accounts were requested and what the source answered |
 
 ### Change log between months
 
@@ -126,7 +147,7 @@ Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, jo
 | `AgedOut` | The key left the response because a newer year arrived and the API returns the latest three fiscal years across both account types | one `remove` row |
 | `Sletting` | The key left the response for any other reason, for example the API now answers 404 | one `remove` row |
 | `KonsernEnded` | The submission for this fiscal year has company accounts but no consolidated accounts, and the year before had both. Logged on the SELSKAP key when that year first appears, or when its KONSERN filing leaves after a resubmission | `konsernregnskap.last_fiscal_year` and the SELSKAP filing's `virksomhet.morselskap`, which says whether the company still reports being a parent |
-| `Status` | Organisation-level change in `outcome`, `http_status`, `message`, `organisasjonsform`, `latest_filing_year`, `register_status` or `register_deleted_date` | one row per changed field |
+| `Status` | A change for the organisation as a whole in `outcome`, `http_status`, `message`, `organisasjonsform`, `latest_filing_year`, `register_status` or `register_deleted_date` | one row per changed field |
 
 The cumulative file refuses to chain onto a previous change log for any cycle other than the prior data release, so a skipped month cannot leave a silent gap. Two transitions inside one month collapse into one net transition, and a resubmission reversed before the next release is invisible: Regnskapsregisteret has no update feed, so the log records net monthly transitions. A `Revised` event has no date of its own beyond the release month.
 

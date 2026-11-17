@@ -82,6 +82,12 @@ def release_files(directory, manifest, table):
     return paths
 
 
+def organisation_table(manifest):
+    """Releases before 0.8.0 call the per-organisation table `observations`."""
+    dataset = manifest.get("dataset") or {}
+    return "organisations" if "organisations" in dataset else "observations"
+
+
 def load_release(db, side, directory, skip_identical_to=None):
     """Load one release; JSON of filings identical to the other side is not kept."""
     manifest = read_manifest(directory)
@@ -146,7 +152,7 @@ def _load_tables(db, side, directory, manifest, other):
                         row["_meta.filing_json"] if body is None else body,
                     ),
                 )
-    for path in release_files(directory, manifest, "observations"):
+    for path in release_files(directory, manifest, organisation_table(manifest)):
         with path.open(newline="", encoding="utf-8") as stream:
             reader = csv.DictReader(stream)
             db.executemany(
@@ -154,6 +160,9 @@ def _load_tables(db, side, directory, manifest, other):
                 [(name,) for name in reader.fieldnames if name in STATUS_FIELDS],
             )
             for row in reader:
+                # Organisations whose accounts were not requested have no lookup to compare.
+                if row.get("accounts_requested") == "false":
+                    continue
                 db.execute(
                     f"INSERT INTO {side}_obs VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (row["orgnr"], *[row.get(field) or "" for field in STATUS_FIELDS]),

@@ -73,10 +73,18 @@ def test_export_contains_filtered_seed_with_legal_form(state, tmp_path):
         "2026-10-06",
     )
     export_release(state, tmp_path / "release")
-    with (tmp_path / "release/observations.csv").open(newline="") as source:
+    with (tmp_path / "release/organisations.csv").open(newline="") as source:
         seed = list(csv.DictReader(source))
-    assert len(seed) == 3
-    assert {row["orgnr"] for row in seed} == {"923609016", "974760673", "888888888"}
+    assert [next(iter(seed[0])), len(seed)] == ["orgnr", 4]
+    requested = {row["orgnr"]: row["accounts_requested"] for row in seed}
+    assert requested == {
+        "923609016": "true",
+        "974760673": "true",
+        "888888888": "true",
+        "999999999": "false",
+    }
+    unfiled = next(row for row in seed if row["orgnr"] == "999999999")
+    assert (unfiled["outcome"], unfiled["http_status"]) == ("not_requested", "")
 
 
 def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
@@ -89,7 +97,7 @@ def test_old_checkpoint_requires_fresh_entity_snapshot(tmp_path):
         )
     state = State(path)
     try:
-        assert state.get("schema_version") == "5"
+        assert state.get("schema_version") == "6"
         assert state.get("entities_date") is None
         state.sync_entities([entity(form="ENK", year=None)], "2026-10-06")
         assert state.summary()["eligible_entities"] == 0

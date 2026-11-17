@@ -9,7 +9,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from brreg_fetcher.changelog import build_changelog, read_manifest, release_files
+from brreg_fetcher.changelog import (
+    build_changelog,
+    organisation_table,
+    read_manifest,
+    release_files,
+)
 from brreg_fetcher.client import Client
 from brreg_fetcher.collector import collect
 from brreg_fetcher.export import export_release
@@ -35,9 +40,10 @@ class SeedClient:
 
 def sample_records(prior_dir, orgnrs=None, count=0, seed=0):
     rows = []
-    for path in release_files(prior_dir, read_manifest(prior_dir), "observations"):
+    manifest = read_manifest(prior_dir)
+    for path in release_files(prior_dir, manifest, organisation_table(manifest)):
         with path.open(newline="", encoding="utf-8") as stream:
-            rows.extend(csv.DictReader(stream))
+            rows.extend(r for r in csv.DictReader(stream) if r.get("accounts_requested") != "false")
     if orgnrs:
         wanted = set(orgnrs)
         rows = [r for r in rows if r["orgnr"] in wanted]
@@ -66,7 +72,13 @@ def run(repo, output, *, prior_tag=None, orgnrs=None, count=500, seed=0, workers
     if prior_tag is None:
         raise RuntimeError("No published data release to compare with")
     prior_dir = download_release(
-        repo, prior_tag, output / prior_tag, "manifest.json", "accounts*.csv", "observations*.csv"
+        repo,
+        prior_tag,
+        output / prior_tag,
+        "manifest.json",
+        "accounts*.csv",
+        "observations*.csv",
+        "organisations*.csv",
     )
     records = sample_records(prior_dir, orgnrs=orgnrs, count=count, seed=seed)
     state_path = output / "sample-checkpoint.sqlite3"

@@ -36,7 +36,7 @@ def flatten(value, prefix=""):
 
 
 def outcome_label(status, message, pending):
-    """One word for an accounts lookup, shared by the observations and population tables."""
+    """One word for the result of an accounts lookup."""
     if pending or status is None:
         return "pending"
     if status == 200:
@@ -110,9 +110,53 @@ def write_csv(records, columns, destination, stem, max_bytes):
     return {"rows": count, "columns": columns, "files": [p.name for p in paths]}
 
 
+KEY_COLUMNS = [
+    "journalnr",
+    "regnskapstype",
+    "_meta.orgnr",
+    "_meta.fiscal_year",
+    "regnskapsperiode.fraDato",
+    "regnskapsperiode.tilDato",
+]
+ORGANISATION_COLUMNS = [
+    "orgnr",
+    "snapshot_date",
+    "navn",
+    "organisasjonsform",
+    "kommunenummer",
+    "naeringskode",
+    "har_registrert_antall_ansatte",
+    "antall_ansatte",
+    "registrert_i_mvaregisteret",
+    "registrert_i_foretaksregisteret",
+    "konkurs",
+    "under_avvikling",
+    "under_tvangsavvikling",
+    "registreringsdato_enhetsregisteret",
+    "kapital",
+    "latest_filing_year",
+    "first_seen",
+    "last_listed",
+    "register_status",
+    "register_deleted_date",
+    "register_checked_on",
+    "accounts_requested",
+    "observed_at",
+    "http_status",
+    "response_sha256",
+    "outcome",
+    "message",
+    "error_body",
+]
+
+
+def flag(value):
+    return "" if value is None else ("true" if value else "false")
+
+
 def export_csv(state, destination, max_bytes):
     # Discover columns over every current filing, including fields appearing late.
-    columns = {"_meta.orgnr", "_meta.fiscal_year", "_meta.snapshot_date", "_meta.filing_json"}
+    columns = {"_meta.snapshot_date", "_meta.filing_json", *KEY_COLUMNS}
     for row in rows(state, current_only=True):
         columns.update(csv_record(row))
 
@@ -122,13 +166,12 @@ def export_csv(state, destination, max_bytes):
             record["_meta.snapshot_date"] = state.get("entities_date", "")
             yield record
 
-    accounts = write_csv(records(), sorted(columns), destination, "accounts", max_bytes)
-    # One coverage row per seed entity, including absence, unsupported plans and
-    # unfinished local runs. Historical observations never stand in for this month.
+    ordered = [*KEY_COLUMNS, *sorted(columns - set(KEY_COLUMNS))]
+    accounts = write_csv(records(), ordered, destination, "accounts", max_bytes)
+    # One row per organisation in the register, whether or not its accounts were requested.
+    # Historical observations never stand in for this month.
     query = """
-        SELECT e.orgnr, e.organisasjonsform, e.year AS latest_filing_year,
-               e.register_status, e.register_deleted_date, e.register_checked_on,
-               o.observed_at, o.status AS http_status, o.sha256 AS response_sha256,
+        SELECT e.*, o.observed_at, o.status AS http_status, o.sha256 AS response_sha256,
                o.message, w.orgnr AS pending, w.error AS pending_error, r.body_gzip
         FROM entities e
         LEFT JOIN observations o ON o.seq = (
@@ -136,56 +179,69 @@ def export_csv(state, destination, max_bytes):
         )
         LEFT JOIN work w ON w.orgnr=e.orgnr
         LEFT JOIN responses r ON r.sha256=o.sha256
-        WHERE e.active=1 ORDER BY e.orgnr
+        ORDER BY e.orgnr
     """
 
-    def observations():
+    def organisations():
         for row in state.db.execute(query, (state.get("cycle"),)):
-            record = dict(row)
-            body = record.pop("body_gzip")
-            status = record["http_status"]
-            pending = record.pop("pending")
-            message = record.pop("pending_error") or record["message"]
-            record["message"] = message
-            record["snapshot_date"] = state.get("entities_date", "")
-            record["outcome"] = outcome_label(status, message, pending)
-            record["error_body"] = (
-                gzip.decompress(body).decode("utf-8", errors="replace")
-                if body is not None and status != 200
-                else ""
-            )
-            yield record
+            status = row["http_status"]
+            message = row["pending_error"] or row["message"]
+            body = row["body_gzip"]
+            requested = bool(row["active"])
+            yield {
+                "orgnr": row["orgnr"],
+                "snapshot_date": state.get("entities_date", ""),
+                "navn": row["navn"],
+                "organisasjonsform": row["organisasjonsform"],
+                "kommunenummer": row["kommunenummer"],
+                "naeringskode": row["naeringskode"],
+                "har_registrert_antall_ansatte": flag(row["har_ansatte"]),
+                "antall_ansatte": row["antall_ansatte"],
+                "registrert_i_mvaregisteret": flag(row["mva"]),
+                "registrert_i_foretaksregisteret": flag(row["foretaksregisteret"]),
+                "konkurs": flag(row["konkurs"]),
+                "under_avvikling": flag(row["under_avvikling"]),
+                "under_tvangsavvikling": flag(row["tvangsavvikling"]),
+                "registreringsdato_enhetsregisteret": row["registreringsdato"],
+                "kapital": row["kapital"],
+                "latest_filing_year": row["year"],
+                "first_seen": row["first_seen"],
+                "last_listed": row["observed_on"],
+                "register_status": row["register_status"],
+                "register_deleted_date": row["register_deleted_date"],
+                "register_checked_on": row["register_checked_on"],
+                "accounts_requested": flag(requested),
+                "observed_at": row["observed_at"] if requested else None,
+                "http_status": status if requested else None,
+                "response_sha256": row["response_sha256"] if requested else None,
+                "outcome": outcome_label(status, message, row["pending"] is not None)
+                if requested
+                else "not_requested",
+                "message": message if requested else None,
+                "error_body": gzip.decompress(body).decode("utf-8", errors="replace")
+                if requested and body is not None and status != 200
+                else "",
+            }
 
-    coverage = write_csv(
-        observations(),
-        [
-            "orgnr",
-            "snapshot_date",
-            "organisasjonsform",
-            "latest_filing_year",
-            "register_status",
-            "register_deleted_date",
-            "register_checked_on",
-            "observed_at",
-            "http_status",
-            "response_sha256",
-            "outcome",
-            "message",
-            "error_body",
-        ],
-        destination,
-        "observations",
-        max_bytes,
+    register = write_csv(
+        organisations(), ORGANISATION_COLUMNS, destination, "organisations", max_bytes
     )
     return {
-        "schema_version": "arsregnskap-nokkeltall-monthly-csv/v1",
+        "schema_version": "arsregnskap-nokkeltall-monthly-csv/v2",
         "format": "csv",
         "encoding": "utf-8",
         "delimiter": ",",
-        "grain": "one row per returned regnskap",
         "snapshot_date": state.get("entities_date"),
-        "accounts": accounts,
-        "observations": coverage,
+        "accounts": {
+            **accounts,
+            "grain": "one row per regnskap and account type",
+            "key": ["journalnr", "regnskapstype"],
+        },
+        "organisations": {
+            **register,
+            "grain": "one row per organisation in the register",
+            "key": ["orgnr"],
+        },
     }
 
 
@@ -247,15 +303,8 @@ def export_release(
             shutil.copyfileobj(source, out, CHUNK_BYTES)
 
     dataset = None
-    population = None
     if not checkpoint_only:
         dataset = export_csv(state, destination, max_asset_bytes)
-        # Population tables need the register attributes of this month's seed; a checkpoint
-        # migrated from an older schema and exported before its next seed has none.
-        if state.get("register_attributes_date") == state.get("entities_date"):
-            from .population import export_population
-
-            population = export_population(state, destination, max_asset_bytes)
 
     if snapshot_path:
         if state.get("seed_sha256") and sha256_file(snapshot_path) != state.get("seed_sha256"):
@@ -287,7 +336,6 @@ def export_release(
             "removed_from_register": "retained with register_status",
         },
         "dataset": dataset,
-        "population": population,
         "assets": {},
     }
     for path in sorted(destination.iterdir()):
@@ -351,6 +399,6 @@ def restore_checkpoint(source, destination):
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise SourceError("Checkpoint failed SQLite integrity check")
             row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
-            if row is None or row[0] not in ("1", "2", "3", "4", SCHEMA_VERSION):
+            if row is None or row[0] not in ("1", "2", "3", "4", "5", SCHEMA_VERSION):
                 raise SourceError("Unsupported checkpoint schema")
         os.replace(restored, destination)

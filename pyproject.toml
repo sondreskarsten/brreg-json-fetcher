@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "brreg-json-fetcher"
-version = "0.7.0"
+version = "0.8.0"
 description = "Collector for regnskapsregisteret-dataset, a monthly open dataset of Norwegian annual-accounts key figures"
 readme = "README.md"
 requires-python = ">=3.12"
