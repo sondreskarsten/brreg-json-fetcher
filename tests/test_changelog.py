@@ -442,3 +442,41 @@ def test_persistent_changelog_failure_does_not_block_collection(monkeypatch, tmp
         assert state.get("changelog_published") is None
     finally:
         state.close()
+
+
+def test_window_is_shared_across_account_types_and_period_start_fixes_are_resubmissions(tmp_path):
+    a, b = ORG["A"], ORG["B"]
+    entities = [entity(a), entity(b)]
+    prior = {
+        a: ok(
+            f(a, 2022, 4000000, "2023100000", typ="KONSERN"),
+            f(a, 2023, 5000000, "2024100000"),
+            f(a, 2024, 6000000, "2025100000"),
+        ),
+        b: ok(f(b, 2025, 7000000, "2026100000")),
+    }
+    fixed = f(b, 2025, 7200000, "2026700000")
+    fixed["regnskapsperiode"]["fraDato"] = "2024-07-01"
+    current = {
+        a: ok(
+            f(a, 2023, 5000000, "2024100000"),
+            f(a, 2024, 6000000, "2025100000"),
+            f(a, 2025, 7100000, "2026200000"),
+        ),
+        b: ok(fixed),
+    }
+    prior_dir = make_release(tmp_path, "data-2026-10", "2026-10-06", entities, prior)
+    current_dir = make_release(tmp_path, "data-2026-11", "2026-11-03", entities, current)
+    manifest = build_changelog(prior_dir, current_dir, tmp_path / "log")
+    assert manifest["events"] == {"AgedOut": 1, "Ny": 1, "Resubmitted": 1}
+    events = by_org(read_rows(tmp_path / "log", "delta"))
+    aged = next(r for r in events[a] if r["endringstype"] == "AgedOut")
+    assert (aged["regnskapstype"], aged["fiscal_year"]) == ("KONSERN", "2022")
+    (row,) = events[b]
+    assert (row["endringstype"], row["path"], row["old_value"], row["new_value"]) == (
+        "Resubmitted",
+        "regnskapsperiode.fraDato",
+        "2025-01-01",
+        "2024-07-01",
+    )
+    assert (row["journalnr_old"], row["journalnr_new"]) == ("2026100000", "2026700000")

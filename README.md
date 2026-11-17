@@ -87,7 +87,7 @@ Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, jo
 | `Resubmitted` | Same key, new `journalnr` or `id` | one `replace`/`add`/`remove` row per changed field; a single row with empty `op` when the structured figures are identical |
 | `Revised` | Same key, same `journalnr` and `id`, a value differs | one row per changed field; the API cannot tell a BRREG re-extraction from an upstream correction |
 | `KeyChanged` | A filing moved to another fiscal year under the same `journalnr` | field rows, including `regnskapsperiode.tilDato` |
-| `AgedOut` | The key left the response because a newer year arrived and the API returns at most three years per type | one `remove` row |
+| `AgedOut` | The key left the response because a newer year arrived and the API returns the latest three fiscal years across both account types | one `remove` row |
 | `Sletting` | The key left the response for any other reason, for example the API now answers 404 | one `remove` row |
 | `Status` | Organisation-level change in `outcome`, `http_status`, `message`, `organisasjonsform`, `latest_filing_year`, `register_status` or `register_deleted_date` | one row per changed field |
 

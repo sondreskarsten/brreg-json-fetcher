@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Change log: an old KONSERN year that leaves the response because a newer SELSKAP year arrived (or the reverse) is `AgedOut`, not `Sletting`; the API's three-year window is shared across account types. A resubmission that changes the period start is one `Resubmitted` event instead of a `Sletting` plus a `Ny`. `changelog-2026-11` was built before this fix: 25 of its 34 `Sletting` events are aged-out KONSERN years and 9 are period-start resubmissions paired with a `Ny` row.
+
 ## 0.6.0
 
 - Publish register population summaries with every data release: `register_population.csv` (organisasjonsform × fylke × NACE division × employees × VAT), four marginal tables, `register_changes.csv` (monthly entries and exits, ENK included, exits split by the single-entity lookup) and `register_codebook.csv`. Every cell carries counts, flags, age, employee and share-capital distributions, and the accounts-API outcome counts and coverage ratio needed to reweight the accounts sample onto the full register.

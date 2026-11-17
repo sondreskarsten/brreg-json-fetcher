@@ -257,6 +257,22 @@ def filing_events(events, orgnr, prior, current):
             old=old,
             new=new,
         )
+    # A resubmission that corrects the period start keeps its type and fiscal year but not
+    # its full key; pair it instead of reporting a deletion and a new filing.
+    for key in sorted(prior_only):
+        same_year = [k for k in sorted(current_only) if k[:2] == key[:2]]
+        if len(same_year) != 1 or sum(k[:2] == key[:2] for k in prior_only) != 1:
+            continue
+        old, new = prior_only.pop(key), current_only.pop(same_year[0])
+        changed = old["journalnr"] != new["journalnr"] or old["id"] != new["id"]
+        events.event(
+            orgnr,
+            "Resubmitted" if changed else "Revised",
+            list(field_changes(old["filing"], new["filing"])),
+            key=key[:2],
+            old=old,
+            new=new,
+        )
     for key in sorted(set(prior) & set(current)):
         old, new = prior[key], current[key]
         if old["sha256"] == new["sha256"] and old["id"] == new["id"]:
@@ -267,12 +283,12 @@ def filing_events(events, orgnr, prior, current):
             kind = "Revised"
         operations = list(field_changes(old["filing"], new["filing"]))
         events.event(orgnr, kind, operations, key=key[:2], old=old, new=new)
-    newest = {}
-    for key in current:
-        newest[key[0]] = max(newest.get(key[0], 0), key[1])
+    # The API returns the latest three fiscal years across both account types, so an old
+    # KONSERN year leaves when a newer SELSKAP year arrives, and the other way round.
+    newest = max((key[1] for key in current), default=None)
     for key in sorted(prior_only):
         old = prior_only[key]
-        aged = key[0] in newest and key[1] < newest[key[0]] - (WINDOW_YEARS - 1)
+        aged = newest is not None and key[1] < newest - (WINDOW_YEARS - 1)
         events.event(
             orgnr,
             "AgedOut" if aged else "Sletting",
