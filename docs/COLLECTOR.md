@@ -201,7 +201,7 @@ throughput; the accounts sample checks runner download, export and comparison.
 
 ## Lookup page
 
-[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
+[sondreskarsten.github.io/regnskapsregisteret-dataset](https://sondreskarsten.github.io/regnskapsregisteret-dataset/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/regnskapsregisteret-dataset/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
 
 ```text
 GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}

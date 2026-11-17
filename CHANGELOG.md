@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The repository is renamed to `regnskapsregisteret-dataset`; links, the lookup page address, the citation file and the notice written into each release now use the new name. Old GitHub links redirect.
+- README rewritten as a product page: what the dataset is, what you get, key facts at a glance, download steps, file reference, licence and citation.
+
 ## 0.7.0
 
 - The project is presented as **regnskapsregisteret-dataset**, a data source. The README leads with a data product definition and why to use the dataset instead of batch lookups against the source API; collector documentation moves to `docs/COLLECTOR.md`. Repository URLs are unchanged until the repository itself is renamed, after which GitHub redirects them.

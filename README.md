@@ -1,71 +1,64 @@
 # regnskapsregisteret-dataset
 
-**The annual-accounts key figures Regnskapsregisteret publishes, for every organisation it serves, as one monthly CSV download.**
+**Annual-accounts key figures for every Norwegian organisation that files accounts, as a monthly open dataset.**
 
-regnskapsregisteret-dataset is a monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before. It holds what the source API returns: the latest three fiscal years per organisation, and no figures for banks, insurers and other organisations whose accounting plan the API does not support. Those are listed with that outcome instead of being left out.
+Each month this repository publishes one complete, ready-to-use CSV dataset of the key figures (nøkkeltall) from Regnskapsregisteret: assets, equity, debt, revenue, operating result and annual result, for company and consolidated accounts. Alongside it come a record of what changed since the previous month and summary tables of the whole business register, so the figures can be put in context.
+
+`data-2026-11`, the latest release, holds **1,240,276 filings from 719,866 organisations**.
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
-Unofficial mirror maintained by [sondreskarsten](https://github.com/sondreskarsten). Not operated, approved or endorsed by Brønnøysundregistrene. Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0); see [licence scope and changes made by this mirror](DATA_LICENSE.md).
+An independent, unofficial mirror maintained by [sondreskarsten](https://github.com/sondreskarsten). Not operated or endorsed by Brønnøysundregistrene.
 
-## Use this instead of looking up companies in bulk
+## What you get
 
-The source API answers one organisation per request. Anyone who needs many companies has to send hundreds of thousands of requests, and so does the next person, and the one after. This dataset does that once a month so nobody else has to.
+- **The whole population in one table.** Every organisation in Enhetsregisteret with accounts on file, across all legal forms, with the latest three fiscal years each. Open it in Excel, R, Python or a database.
+- **A history that does not disappear.** Every month is a separate, permanent release. When a company's figures are corrected or an old year drops out at the source, the earlier state is still here.
+- **Corrections you can see.** Companies resubmit accounts. The monthly change log lists each resubmission and every figure that changed, with old and new value. From October to November 2026 that was 390 filings.
+- **No silent gaps.** Every organisation has a recorded outcome: accounts returned, no accounts on file, accounting plan not available from the source, or removed from the register and when.
+- **Context for your sample.** Summary tables of the full register by legal form, county, industry, employees and VAT registration, sole proprietorships included, show how the organisations with accounts compare with those without.
+- **Results others can reproduce.** A release never changes after publication and every file has a checksum. Cite the release tag and anyone can retrieve exactly the same data.
 
-| | Batch lookups against the API | regnskapsregisteret-dataset |
-| --- | --- | --- |
-| Effort | about 720,000 requests, five days at a polite rate | one download |
-| Load on Brønnøysundregistrene | once per researcher, per project, per rerun | once per month in total |
-| History | latest three fiscal years, as they stand today | one release per month since October 2026, so earlier states stay downloadable |
-| Corrections | a resubmitted filing silently replaces the old one | the old version stays in the earlier release, and the change log lists every changed field |
-| Reproducibility | results depend on the day you ran | cite `data-2026-11`; everyone gets the same checksummed bytes |
-| What you did not get | invisible | every organisation has an outcome: accounts, none on file, unsupported accounting plan, left the register and when |
-| Representativeness | unknown | population tables for the whole register, ENK included, with coverage per cell for reweighting |
-
-Corrections are not rare. Between the October and November 2026 releases, 390 filings were resubmitted; 313 of them changed reported figures, mostly equity, debt and the annual result. (Counted with the 0.7.0 rules; the published `changelog-2026-11` predates them and labels 9 of these differently.)
-
-**When to call Brønnøysundregistrene instead:** you need one company, you need today's value, or you need something with legal standing. For a single company use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/) or [data.brreg.no](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs) directly.
-
-## Data product definition
+## At a glance
 
 | | |
 | --- | --- |
-| **Product** | A monthly, complete, immutable copy of the annual-accounts key figures (nøkkeltall) that Regnskapsregisteret publishes through its open API |
-| **Source** | `data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`, one request per organisation, plus the full Enhetsregisteret download as the list of organisations |
-| **Population** | Every organisation in Enhetsregisteret, except sole proprietorships (ENK) without a filed annual account. Organisations that later leave the register are kept |
-| **Unit** | One filing: organisation × account type (SELSKAP or KONSERN) × fiscal year |
-| **Content per filing** | About 30 key figures: total assets, current and fixed assets, equity, debt, revenue, operating result, financial items, tax, annual result; plus period, currency, accounting plan, audit and accounting-principle flags, filing id and journal number |
-| **Depth** | The latest three fiscal years the API returns at collection time. Earlier years exist only in earlier releases |
-| **Cadence** | One release per month. The register list is taken at the start of the month and collection takes about five days; each row carries its own observation time |
-| **Format** | UTF-8 CSV with header, one file set per release, described by `manifest.json` and verified by `SHA256SUMS` |
-| **Stability** | A published release never changes. Columns are the union of fields the source returned that month, so new source fields appear as new columns |
-| **Licence** | Source data under NLOD 2.0 with attribution to Brønnøysundregistrene; see `DATA_NOTICE.md` in each release |
+| **Source** | Regnskapsregisteret's open key-figures API and the Enhetsregisteret register download, both from Brønnøysundregistrene |
+| **Coverage** | All organisations in Enhetsregisteret except sole proprietorships (ENK) without a filed annual account. Organisations that later leave the register are kept |
+| **One row is** | One filing: organisation × account type (company or consolidated) × fiscal year |
+| **Figures per filing** | About 30: total, current and fixed assets; equity; short- and long-term debt; revenue; operating result; financial items; tax; annual result. Plus period, currency, audit and accounting-principle flags |
+| **Years** | The latest three fiscal years available at the source each month |
+| **Updated** | Monthly. The register list is taken at the start of the month; collection takes about five days and every row carries its observation time |
+| **Format** | UTF-8 CSV with header, a `manifest.json` describing the files, and `SHA256SUMS` |
+| **First release** | `data-2026-10` (limited to AS and ASA). All legal forms from `data-2026-11` |
+| **Licence** | NLOD 2.0, with attribution to Brønnøysundregistrene |
 
-**Each month delivers three things:**
+### What each month contains
 
 | Release | Contents |
 | --- | --- |
-| `data-YYYY-MM` | `accounts*.csv`, the filings. `observations.csv`, one outcome per organisation: accounts returned, none on file, unsupported accounting plan, and register status. `register_*.csv`, population tables for the whole register, ENK included |
-| `changelog-YYYY-MM` | Every difference from the previous month, one row per changed field: new filings, resubmissions, aged-out years, status changes, groups that stopped filing consolidated accounts. Plus the cumulative log |
-| `checkpoint-…` (prerelease) | Recovery state of a collection in progress. Not part of the product; ignore these |
+| `data-YYYY-MM` | `accounts*.csv`: the filings. `observations.csv`: one outcome per organisation. `register_*.csv`: summary tables of the whole register |
+| `changelog-YYYY-MM` | `changes-YYYY-MM.csv`: every difference from the previous month. `changes.csv`: all months so far |
+| `checkpoint-…` (prerelease) | Working state of a collection in progress. Not a dataset; ignore these |
 
-**Not in the product:** the full annual accounts, notes, auditor's report or PDF; line items below the key figures; figures for organisations whose accounting plan the source API does not serve (banks, insurers, pension funds and some others), which are listed with that outcome; anything older than the first release, `data-2026-10`, which covered AS and ASA only.
+### What it does not contain
 
-## Get the data
+The full annual accounts, notes, auditor's report and PDF are not included, nor line items below the key figures. Banks, insurers, pension funds and a few other groups use accounting plans the source does not publish key figures for; they are listed in `observations.csv` with that outcome. For a legally authoritative or up-to-the-minute figure for one organisation, consult Brønnøysundregistrene directly.
 
-Completed months are published on the [releases page](https://github.com/sondreskarsten/brreg-json-fetcher/releases) with the tag **`data-YYYY-MM`**. Pick the newest `data-` tag; `checkpoint-` prereleases are recovery state for a collection still in progress, and `v*` releases are the collector software. The lookup page lists the latest completed month and its assets automatically.
+## Download
 
-Direct asset URLs follow this pattern (large CSV datasets use numbered filenames listed in the manifest):
+1. Open the [releases page](https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases) and choose the newest release whose tag starts with `data-`.
+2. Download the files you need from its asset list. For most uses that is the `accounts` files and `observations.csv`.
+3. For the monthly changes, open the matching `changelog-` release.
 
-```text
-https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY-MM/accounts.csv
-https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY-MM/observations.csv
-https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY-MM/manifest.json
-```
+The accounts are split into several files of at most 1 GB (`accounts-00001.csv`, `accounts-00002.csv`, …). Each part has its own header and can be opened on its own; stack them for the full table.
+
+<details>
+<summary>Download and verify from the command line</summary>
 
 ```bash
 TAG=data-2026-11  # Choose an existing completed data release.
-BASE="https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/$TAG"
+BASE="https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases/download/$TAG"
 curl -fSLO "$BASE/manifest.json"
 # The manifest names every independently readable CSV, including split files.
 python3 - <<'PYCSV' > csv-files.txt
@@ -84,6 +77,8 @@ for file in DATA_NOTICE.md SHA256SUMS; do
 done
 sha256sum -c --ignore-missing SHA256SUMS
 ```
+
+</details>
 
 | Asset | Contents |
 | --- | --- |
@@ -110,8 +105,6 @@ The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year
 
 CSV files exceeding 1 GiB split at record boundaries into `accounts-00001.csv`, etc., each with its own header and checksum. Each file can be read independently; no CSV record is cut in half. Other oversized assets use ordered `.partNNNN` files with assembled checksums described in `manifest.json`. Published releases are immutable.
 
-Downstream use must retain the source attribution and licence link above and identify its own changes; see `DATA_NOTICE.md` in every release and [DATA_LICENSE.md](DATA_LICENSE.md).
-
 ### Register population summary
 
 The accounts dataset covers organisations with public filings. To say how that sample relates to the whole register, every data release also summarises the complete Enhetsregisteret download, ENK and all other legal forms included, without any orgnr-level data. `register_population.csv` has one row per cell of `organisasjonsform × fylke × nace2 × has_employees × vat_registered`; `register_by_form.csv`, `register_by_form_fylke.csv`, `register_by_form_nace2.csv` and `register_by_form_employees_vat.csv` are the marginals for spreadsheet use. `fylke` is the first two digits of the business address kommunenummer (postal address as fallback, 2024 county codes), `nace2` the NACE division of `naeringskode1`, `has_employees` whether `antallAnsatte` is above zero. Each row carries `n` and its share of the legal form and of the register, counts for Foretaksregisteret, konkurs, avvikling and a filed year, distributions (n, mean, sd, p10, p25, median, p75, p90, min, max) of age since registration, employees among those with any, and share capital, and the accounts outcome counts for the cell (`n_ok`, `n_not_found`, `n_unsupported`, `n_pending`, `n_error`, `n_not_in_universe`), the number of filings and `coverage_ratio = n_ok / n`. Weighting the accounts sample by the inverse coverage ratio projects it onto the register population.
@@ -137,16 +130,18 @@ Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, jo
 
 The cumulative file refuses to chain onto a previous change log for any cycle other than the prior data release, so a skipped month cannot leave a silent gap. Two transitions inside one month collapse into one net transition, and a resubmission reversed before the next release is invisible: Regnskapsregisteret has no update feed, so the log records net monthly transitions. A `Revised` event has no date of its own beyond the release month.
 
+## Licence and attribution
+
+The data is made available by Brønnøysundregistrene under [NLOD 2.0](https://data.norge.no/nlod/no/2.0). If you use or redistribute it, keep the attribution line above and the licence link, and say what you changed. Each release includes a `DATA_NOTICE.md` with the exact wording. [DATA_LICENSE.md](DATA_LICENSE.md) describes the licence scope and the changes this mirror makes to the source data.
+
 ## How to cite
 
-Cite the release tag, which is immutable:
+Cite the release you used. Release tags are permanent:
 
-> regnskapsregisteret-dataset, release `data-2026-11`. Unofficial monthly mirror of Regnskapsregisteret key figures. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene. https://github.com/sondreskarsten/brreg-json-fetcher/releases/tag/data-2026-11
+> regnskapsregisteret-dataset, release `data-2026-11`. Unofficial monthly mirror of Regnskapsregisteret key figures. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene. https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases/tag/data-2026-11
 
-## Look up one organisation
+## More
 
-[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) fetches one organisation's accounts in the browser and offers a per-filing CSV. It also lists the latest monthly release. Details and caveats are in [docs/COLLECTOR.md](docs/COLLECTOR.md#lookup-page).
-
-## How it is made
-
-A scheduled GitHub Actions workflow downloads the full Enhetsregisteret at the start of each month (later if the previous month is still being finished; the seed date is in every release), fetches every eligible organisation once over several days, and publishes the release when the queue is empty. The collector, its recovery behaviour, the source API's quirks and how to run it yourself are documented in [docs/COLLECTOR.md](docs/COLLECTOR.md). Release history of the software is in [CHANGELOG.md](CHANGELOG.md).
+- **One organisation:** the [lookup page](https://sondreskarsten.github.io/regnskapsregisteret-dataset/) shows a single organisation's key figures in the browser.
+- **How the dataset is produced:** [docs/COLLECTOR.md](docs/COLLECTOR.md) documents the collection process, quality checks and the source's behaviour, and how to run it yourself.
+- **Questions or errors:** open an [issue](https://github.com/sondreskarsten/regnskapsregisteret-dataset/issues). For an error in a company's own figures, the source record at Brønnøysundregistrene is authoritative.

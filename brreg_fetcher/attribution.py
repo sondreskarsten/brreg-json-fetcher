@@ -1,6 +1,6 @@
 """Source-data attribution, separate from any licence for this collector's code."""
 
-REPOSITORY = "https://github.com/sondreskarsten/brreg-json-fetcher"
+REPOSITORY = "https://github.com/sondreskarsten/regnskapsregisteret-dataset"
 LICENCE_URL = "https://data.norge.no/nlod/no/2.0"
 ACCOUNTS_CATALOG = (
     "https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret"
