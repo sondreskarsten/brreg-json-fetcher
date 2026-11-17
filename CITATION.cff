@@ -4,8 +4,8 @@ message: Cite the immutable release tag you used, for example data-2026-11.
 type: dataset
 authors:
   - name: sondreskarsten
-url: https://github.com/sondreskarsten/brreg-json-fetcher/releases
-repository-code: https://github.com/sondreskarsten/brreg-json-fetcher
+url: https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases
+repository-code: https://github.com/sondreskarsten/regnskapsregisteret-dataset
 abstract: >-
   Unofficial monthly mirror of the annual-accounts key figures published by
   Regnskapsregisteret, with register population tables and a month-over-month
