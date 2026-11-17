@@ -1,8 +1,8 @@
 # open-regnskap
 
-**Every public annual-accounts key figure in Norway, as one monthly CSV download.**
+**The annual-accounts key figures Regnskapsregisteret publishes, for every organisation it serves, as one monthly CSV download.**
 
-open-regnskap is a complete monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before.
+open-regnskap is a monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before. It holds what the source API returns: the latest three fiscal years per organisation, and no figures for banks, insurers and other organisations whose accounting plan the API does not support. Those are listed with that outcome instead of being left out.
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
@@ -16,13 +16,13 @@ The source API answers one organisation per request. Anyone who needs many compa
 | --- | --- | --- |
 | Effort | about 720,000 requests, five days at a polite rate | one download |
 | Load on Brønnøysundregistrene | once per researcher, per project, per rerun | once per month in total |
-| History | latest three fiscal years, as they stand today | every monthly state is kept |
-| Corrections | a resubmitted filing silently replaces the old one | both versions kept, and the change is logged field by field |
+| History | latest three fiscal years, as they stand today | one release per month since October 2026, so earlier states stay downloadable |
+| Corrections | a resubmitted filing silently replaces the old one | the old version stays in the earlier release, and the change log lists every changed field |
 | Reproducibility | results depend on the day you ran | cite `data-2026-11`; everyone gets the same checksummed bytes |
 | What you did not get | invisible | every organisation has an outcome: accounts, none on file, unsupported accounting plan, left the register and when |
 | Representativeness | unknown | population tables for the whole register, ENK included, with coverage per cell for reweighting |
 
-Corrections are not rare. Between the October and November 2026 releases, 390 filings were resubmitted; 313 of them changed reported figures, mostly equity, debt and the annual result.
+Corrections are not rare. Between the October and November 2026 releases, 390 filings were resubmitted; 313 of them changed reported figures, mostly equity, debt and the annual result. (Counted with the 0.7.0 rules; the published `changelog-2026-11` predates them and labels 9 of these differently.)
 
 **When to call Brønnøysundregistrene instead:** you need one company, you need today's value, or you need something with legal standing. For a single company use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/) or [data.brreg.no](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs) directly.
 
@@ -49,7 +49,7 @@ https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY
 ```
 
 ```bash
-TAG=data-2026-10  # Choose an existing completed data release.
+TAG=data-2026-11  # Choose an existing completed data release.
 BASE="https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/$TAG"
 curl -fSLO "$BASE/manifest.json"
 # The manifest names every independently readable CSV, including split files.
@@ -134,4 +134,4 @@ Cite the release tag, which is immutable:
 
 ## How it is made
 
-A scheduled GitHub Actions workflow downloads the full Enhetsregisteret on the first of each month, fetches every eligible organisation once over several days, and publishes the release when the queue is empty. The collector, its recovery behaviour, the source API's quirks and how to run it yourself are documented in [docs/COLLECTOR.md](docs/COLLECTOR.md). Release history of the software is in [CHANGELOG.md](CHANGELOG.md).
+A scheduled GitHub Actions workflow downloads the full Enhetsregisteret at the start of each month (later if the previous month is still being finished; the seed date is in every release), fetches every eligible organisation once over several days, and publishes the release when the queue is empty. The collector, its recovery behaviour, the source API's quirks and how to run it yourself are documented in [docs/COLLECTOR.md](docs/COLLECTOR.md). Release history of the software is in [CHANGELOG.md](CHANGELOG.md).

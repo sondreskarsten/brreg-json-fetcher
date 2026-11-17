@@ -232,6 +232,7 @@ def publish(repo, directory, tag, target):
         )
         + "Verify SHA256SUMS. Large files use ordered parts described by manifest.json.\n"
     )
+    title = f"open-regnskap {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}"
     pages = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases"))
     existing = next((r for page in pages for r in page if r["tag_name"] == tag), None)
     if existing and not existing["draft"]:
@@ -247,7 +248,7 @@ def publish(repo, directory, tag, target):
             target,
             "--draft",
             "--title",
-            f"open-regnskap {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}",
+            title,
             "--notes-file",
             str(notes),
         )
@@ -264,6 +265,10 @@ def publish(repo, directory, tag, target):
         tag,
         "--repo",
         repo,
+        "--title",
+        title,
+        "--notes-file",
+        str(notes),
         "--draft=false",
         "--latest=false",
         f"--prerelease={'true' if checkpoint else 'false'}",
