@@ -480,3 +480,50 @@ def test_window_is_shared_across_account_types_and_period_start_fixes_are_resubm
         "2024-07-01",
     )
     assert (row["journalnr_old"], row["journalnr_new"]) == ("2026100000", "2026700000")
+
+
+def test_konsern_ended_is_logged_once_when_a_group_stops_filing_consolidated_accounts(tmp_path):
+    a, b = ORG["A"], ORG["B"]
+    entities = [entity(a), entity(b)]
+    both_2024 = [
+        f(a, 2024, 6000000, "2025100000"),
+        f(a, 2024, 6000001, "2025100000", typ="KONSERN"),
+    ]
+    steady = [
+        f(b, 2024, 6100000, "2025200000"),
+        f(b, 2024, 6100001, "2025200000", typ="KONSERN"),
+        f(b, 2025, 7100000, "2026200000"),
+        f(b, 2025, 7100001, "2026200000", typ="KONSERN"),
+    ]
+    selskap_2025 = f(a, 2025, 7000000, "2026100000", **{"virksomhet.morselskap": True})
+    october = make_release(
+        tmp_path, "data-2026-10", "2026-10-06", entities, {a: ok(*both_2024), b: ok(*steady)}
+    )
+    november = make_release(
+        tmp_path,
+        "data-2026-11",
+        "2026-11-03",
+        entities,
+        {a: ok(*both_2024, selskap_2025), b: ok(*steady)},
+    )
+    manifest = build_changelog(october, november, tmp_path / "nov")
+    assert manifest["events"] == {"Ny": 1, "KonsernEnded": 1}
+    ended = [r for r in read_rows(tmp_path / "nov", "delta") if r["endringstype"] == "KonsernEnded"]
+    assert {(r["orgnr"], r["regnskapstype"], r["fiscal_year"]) for r in ended} == {
+        (a, "SELSKAP", "2025")
+    }
+    assert {(r["path"], r["old_value"], r["new_value"]) for r in ended} == {
+        ("konsernregnskap.last_fiscal_year", "2024", ""),
+        ("virksomhet.morselskap", "", "true"),
+    }
+    assert ended[0]["journalnr_new"] == "2026100000"
+    # Unchanged next month: the same state is not reported again.
+    december = make_release(
+        tmp_path,
+        "data-2026-12",
+        "2026-12-02",
+        entities,
+        {a: ok(*both_2024, selskap_2025), b: ok(*steady)},
+    )
+    again = build_changelog(november, december, tmp_path / "dec")
+    assert again["events"] == {}

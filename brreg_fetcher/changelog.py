@@ -299,6 +299,37 @@ def filing_events(events, orgnr, prior, current):
     for key in sorted(current_only):
         new = current_only[key]
         events.event(orgnr, "Ny", [("add", "", None, new["sha256"])], key=key[:2], new=new)
+    konsern_ended(events, orgnr, prior, current)
+
+
+def konsern_ended(events, orgnr, prior, current):
+    """A company that filed consolidated accounts for one year and none for the next.
+
+    Consolidated accounts are part of the same submission as the company accounts, so a
+    SELSKAP filing without a KONSERN filing for its year means the submission had none.
+    """
+    konsern = {key[1] for key in (*prior, *current) if key[0] == "KONSERN"}
+    current_konsern = {key[1] for key in current if key[0] == "KONSERN"}
+    prior_keys = {key[:2] for key in prior}
+    for key in sorted(current):
+        kind, year = key[:2]
+        if kind != "SELSKAP" or year in current_konsern or year - 1 not in konsern:
+            continue
+        # Already the case last month unless the SELSKAP year is new or its KONSERN left.
+        if ("SELSKAP", year) in prior_keys and ("KONSERN", year) not in prior_keys:
+            continue
+        new = current[key]
+        parent = ((new["filing"] or {}).get("virksomhet") or {}).get("morselskap")
+        events.event(
+            orgnr,
+            "KonsernEnded",
+            [
+                ("replace", "konsernregnskap.last_fiscal_year", year - 1, None),
+                ("replace", "virksomhet.morselskap", None, parent),
+            ],
+            key=key[:2],
+            new=new,
+        )
 
 
 def filings_of(db, side, orgnr):
@@ -452,6 +483,7 @@ def build_changelog(
                 "KeyChanged",
                 "AgedOut",
                 "Sletting",
+                "KonsernEnded",
                 "Status",
             ],
             "delta": delta,
