@@ -61,6 +61,22 @@ Original and current SELSKAP rows compared field by field:
 | 934445791 | 21 | |
 | 938737797 | 5 | two totals differ by 1 |
 
+## id and journalnr
+
+Both SELSKAP versions can be fetched by `id`: the original one and the current one, in 9 of 9
+cases. The list endpoint returns only the current one.
+
+| | `id` | `journalnr` |
+|---|---|---|
+| Identifies | one row: one version of one account type | one submission, shared by its SELSKAP and KONSERN rows |
+| Can be queried | yes, `/{orgnr}/{id}` | no endpoint takes it |
+| Changes on resubmission | yes | yes |
+| Printed on the PDF | no | yes |
+
+This reverses the earlier working position in this project that `journalnr` alone is the
+identity to build on and that `id` adds nothing. `id` is the only handle that retrieves a
+superseded version. `journalnr` remains what ties a row to its submission and to the PDF.
+
 ## Not explained
 
 - **928772896.** The current SELSKAP journalnr 2024403828 is lower than the KONSERN journalnr
