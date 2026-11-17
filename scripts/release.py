@@ -1,6 +1,7 @@
 """Restore/publish data releases with gh; never publish a partial asset upload."""
 
 import argparse
+import itertools
 import json
 import os
 import re
@@ -11,7 +12,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from brreg_fetcher.attribution import ATTRIBUTION, LICENCE_URL, REPOSITORY
-from brreg_fetcher.changelog import build_changelog
+from brreg_fetcher.changelog import SCHEMA, build_changelog
 from brreg_fetcher.export import restore_asset, restore_checkpoint, sha256_file
 from brreg_fetcher.state import State
 
@@ -148,6 +149,30 @@ def seed_file(repo, state, destination):
     return destination
 
 
+DATA_PATTERNS = ("manifest.json", "accounts*.csv", "observations*.csv", "organisations*.csv")
+
+
+def rebuilt_history(repo, releases, prior_tag, compare):
+    """Build every change log up to `prior_tag` again from the published data releases.
+
+    Used when the published change log before this one has an older layout, so the
+    cumulative log stays complete from the first data release.
+    """
+    tags = sorted(
+        r["tag_name"]
+        for r in releases
+        if re.fullmatch(r"data-\d{4}-\d{2}", r["tag_name"]) and r["tag_name"] <= prior_tag
+    )
+    previous = None
+    for older, newer in itertools.pairwise(tags):
+        older_dir = download_release(repo, older, compare / older, *DATA_PATTERNS)
+        newer_dir = download_release(repo, newer, compare / newer, *DATA_PATTERNS)
+        rebuilt = compare / f"rebuilt-changelog-{newer.removeprefix('data-')}"
+        build_changelog(older_dir, newer_dir, rebuilt, previous_changelog=previous)
+        previous = rebuilt
+    return previous
+
+
 def publish_changelog(repo, cycle, output, target):
     """Compare this month's data release with the previous one and publish the log."""
     releases = published_releases(repo)
@@ -182,6 +207,9 @@ def publish_changelog(repo, cycle, output, target):
         previous_dir = download_release(
             repo, previous_tag, compare / previous_tag, "manifest.json", "changes*.csv"
         )
+        layout = json.loads((previous_dir / "manifest.json").read_text())["dataset"]
+        if layout.get("schema_version") != SCHEMA:
+            previous_dir = rebuilt_history(repo, releases, prior_tag, compare)
     changelog_dir = output / f"changelog-{cycle}"
     manifest = build_changelog(
         prior_dir, current_dir, changelog_dir, previous_changelog=previous_dir

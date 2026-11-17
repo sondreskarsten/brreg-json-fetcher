@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0
+
+Change log layout v2. `changelog-2026-12` and later differ from `changelog-2026-11`:
+
+- An event is a change to one regnskap: an organisation and fiscal year, identified by the `journalnr` of its SELSKAP row. The KONSERN row on the same `journalnr` is part of the same event. Before, SELSKAP and KONSERN were logged as separate events.
+- New columns `konsern_old` and `konsern_new` say whether the regnskap had consolidated accounts before and after. A resubmission that removes them is `true` to `false` with a `KONSERN` row of `op` = `remove`; one that adds them is `false` to `true`.
+- `regnskapstype`, `id_old` and `id_new` now describe the part a row belongs to.
+- A KONSERN row the source still returns from an earlier submission is not compared. The manifest counts them as `konsern_rows_from_earlier_submissions`.
+- `KonsernEnded` is logged only when a new year arrives without consolidated accounts. Their removal from an existing year is a `Resubmitted` event.
+- When the previous published change log has another layout, the release step rebuilds the earlier months from the data releases, so `changes.csv` stays complete.
+- October to November 2026 in this layout: 384 `Resubmitted`, of which 6 added consolidated accounts and none removed them; 1,960 `AgedOut`; 47 `KonsernEnded`.
+
 ## 0.8.0
 
 Data format v2. Releases from this version differ from `data-2026-11` and earlier:

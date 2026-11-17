@@ -14,7 +14,7 @@ An independent, unofficial mirror maintained by [sondreskarsten](https://github.
 
 - **The whole population in one table.** Every organisation in Enhetsregisteret with accounts on file, across all legal forms, with the latest three fiscal years each. Open it in Excel, R, Python or a database.
 - **A history that does not disappear.** Every month is a separate, permanent release. When a company's figures are corrected or an old year drops out at the source, the earlier state is still here.
-- **Corrections you can see.** Companies resubmit accounts. The monthly change log lists each resubmission and every figure that changed, with old and new value. From October to November 2026 that was 390 filings.
+- **Corrections you can see.** Companies resubmit accounts. The monthly change log lists each resubmission and every figure that changed, with old and new value. From October to November 2026 that was 384 regnskap.
 - **No silent gaps.** Every organisation has a recorded outcome: accounts returned, no accounts on file, accounting plan not available from the source, or removed from the register and when.
 - **The full register alongside.** One row per organisation in Enhetsregisteret, sole proprietorships included: name, legal form, municipality, industry code, whether it has employees, VAT registration and more. Join it to the accounts on `orgnr` to compare organisations with and without accounts.
 - **Results others can reproduce.** A release never changes after publication and every file has a checksum. Cite the release tag and anyone can retrieve exactly the same data.
@@ -99,7 +99,7 @@ Other files in a release: `enheter.json.gz` (the complete register download the 
 
 **Company and consolidated accounts.** A regnskap always has company accounts (`regnskapstype` = `SELSKAP`). A parent company's regnskap can also contain consolidated accounts for the group (`KONSERN`). Both rows then share the same `journalnr`, so `journalnr` + `regnskapstype` identifies a row. In `data-2026-11`, 12,933 regnskap contain both.
 
-**Following a company over time.** `_meta.orgnr` + `regnskapstype` + `_meta.fiscal_year` identifies the accounts for one organisation and year. There is at most one row for each in a release. If its `journalnr` differs from an earlier release, the accounts were resubmitted.
+**Following a company over time.** `_meta.orgnr` + `regnskapstype` + `_meta.fiscal_year` identifies the accounts for one organisation and year. There is at most one row for each in a release. If its `journalnr` differs from an earlier release, the accounts were resubmitted. The company accounts are always part of a regnskap, so the `journalnr` of the SELSKAP row is the current regnskap for that year.
 
 **Columns.** The first six are the keys: `journalnr`, `regnskapstype`, `_meta.orgnr`, `_meta.fiscal_year`, `regnskapsperiode.fraDato`, `regnskapsperiode.tilDato`. The key figures follow as dotted names that mirror the source, for example `eiendeler.sumEiendeler` (total assets), `egenkapitalGjeld.egenkapital.sumEgenkapital` (equity) and `resultatregnskapResultat.aarsresultat` (annual result). Amounts are in whole units of `valuta`. A blank cell means the figure was not reported; it does not mean zero. `_meta.fiscal_year` is the year of `regnskapsperiode.tilDato`.
 
@@ -136,18 +136,41 @@ Every organisation in the month's register download, plus organisations from ear
 
 Every completed month after the first also publishes **`changelog-YYYY-MM`**, built by comparing the new `data-YYYY-MM` release with the previous month's data release. It is shaped like an update feed: one row per field operation, and the rows of one transition share an `event_id`. `changes-YYYY-MM.csv` holds that month's events; `changes.csv` is the cumulative log since the first comparison, with `event_id` continuing across months.
 
-Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, journalnr_old, journalnr_new, id_old, id_new, op, path, old_value, new_value`. The unit is `orgnr × regnskapstype × fiscal year`; `id` and `journalnr` ride along as attributes. `journalnr` is ten digits, the year Regnskapsregisteret received the submission followed by a sequence number, so a new `journalnr` is a new submission.
+**What one event is.** An event is a change to one regnskap: one organisation and fiscal year. The regnskap is identified by the `journalnr` of its company accounts. Its consolidated accounts, when it has them, are the KONSERN row on the same `journalnr`.
+
+**Columns.** `event_id, release, orgnr, fiscal_year, endringstype, journalnr_old, journalnr_new, konsern_old, konsern_new, regnskapstype, id_old, id_new, op, path, old_value, new_value`.
+
+| Column | Content |
+| --- | --- |
+| `journalnr_old`, `journalnr_new` | The regnskap before and after. A different number is a new submission |
+| `konsern_old`, `konsern_new` | `true` or `false`: whether the regnskap had consolidated accounts before and after. Blank on the side where the regnskap does not exist |
+| `regnskapstype` | Which part the row describes: `SELSKAP` or `KONSERN` |
+| `id_old`, `id_new` | The source's row id for that part, before and after |
+| `op`, `path`, `old_value`, `new_value` | One changed field: `add`, `remove` or `replace`. An empty `op` means that part has no changed figures |
+
+**Reading the consolidated accounts.**
+
+| `konsern_old` | `konsern_new` | Meaning |
+| --- | --- | --- |
+| `true` | `true` | Consolidated accounts are in both. Changed figures are listed in the `KONSERN` rows |
+| `false` | `true` | The new submission added consolidated accounts. One `KONSERN` row with `op` = `add` |
+| `true` | `false` | The new submission has no consolidated accounts. One `KONSERN` row with `op` = `remove` |
+| `false` | `false` | No consolidated accounts in either |
 
 | `endringstype` | Meaning | Rows |
 | --- | --- | --- |
-| `Ny` | The key was not in the prior release | one `add` row; `new_value` is the filing's SHA-256 in that month's `accounts.csv` |
-| `Resubmitted` | Same key, new `journalnr` or `id` | one `replace`/`add`/`remove` row per changed field; a single row with empty `op` when the structured figures are identical |
-| `Revised` | Same key, same `journalnr` and `id`, a value differs | one row per changed field; the API cannot tell a BRREG re-extraction from an upstream correction |
-| `KeyChanged` | A filing moved to another fiscal year under the same `journalnr` | field rows, including `regnskapsperiode.tilDato` |
-| `AgedOut` | The key left the response because a newer year arrived and the API returns the latest three fiscal years across both account types | one `remove` row |
-| `Sletting` | The key left the response for any other reason, for example the API now answers 404 | one `remove` row |
-| `KonsernEnded` | The submission for this fiscal year has company accounts but no consolidated accounts, and the year before had both. Logged on the SELSKAP key when that year first appears, or when its KONSERN filing leaves after a resubmission | `konsernregnskap.last_fiscal_year` and the SELSKAP filing's `virksomhet.morselskap`, which says whether the company still reports being a parent |
+| `Ny` | A regnskap for a year that was not in the prior release | one `add` row per part; `new_value` is the row's SHA-256 in that month's `accounts.csv` |
+| `Resubmitted` | The year has a new `journalnr` or `id` | one row per changed field in each part; a single row with empty `op` for a part whose figures are identical |
+| `Revised` | Same `journalnr` and `id`, a value differs | one row per changed field; the source cannot tell a re-extraction from a correction |
+| `KeyChanged` | A regnskap moved to another fiscal year under the same `journalnr` | field rows, including `regnskapsperiode.tilDato` |
+| `AgedOut` | The regnskap left the response because a newer year arrived and the source returns the latest three fiscal years | one `remove` row per part |
+| `Sletting` | The regnskap left the response for any other reason, for example the source now answers 404 | one `remove` row per part |
+| `KonsernEnded` | A new year arrived with company accounts only, and the year before had consolidated accounts | `konsernregnskap.last_fiscal_year` and `virksomhet.morselskap`, which says whether the company still reports being a parent |
 | `Status` | A change for the organisation as a whole in `outcome`, `http_status`, `message`, `organisasjonsform`, `latest_filing_year`, `register_status` or `register_deleted_date` | one row per changed field |
+
+**Consolidated accounts from an earlier submission.** After a resubmission without consolidated accounts, the source can keep returning the KONSERN row of the earlier submission. That row stays in `accounts.csv` under its own `journalnr` and is not part of the current regnskap. The change log reports the removal once, in the `Resubmitted` event, and stays silent when the row later disappears. The manifest's `konsern_rows_from_earlier_submissions` counts such rows in the release: 9 in `data-2026-11`.
+
+**Layout versions.** This is layout `regnskap-changelog-csv/v2`, used from `changelog-2026-12`. Its `changes.csv` covers every month since the first data release, October 2026. `changelog-2026-11` is the only release in the earlier layout, which had one event per account type.
 
 The cumulative file refuses to chain onto a previous change log for any cycle other than the prior data release, so a skipped month cannot leave a silent gap. Two transitions inside one month collapse into one net transition, and a resubmission reversed before the next release is invisible: Regnskapsregisteret has no update feed, so the log records net monthly transitions. A `Revised` event has no date of its own beyond the release month.
 

@@ -171,6 +171,9 @@ def test_every_transition_kind_is_logged(tmp_path):
     }
     assert (a[0]["journalnr_old"], a[0]["journalnr_new"]) == ("2026759398", "2026769396")
     assert (a[0]["id_old"], a[0]["id_new"]) == ("7213446", "7241960")
+    assert {(r["regnskapstype"], r["konsern_old"], r["konsern_new"]) for r in a} == {
+        ("SELSKAP", "false", "false")
+    }
 
     (b,) = events[o["B"]]
     assert (b["endringstype"], b["op"], b["path"], b["old_value"], b["new_value"]) == (
@@ -198,6 +201,7 @@ def test_every_transition_kind_is_logged(tmp_path):
     gone = [r for r in d if r["endringstype"] == "Sletting"]
     assert sorted(r["fiscal_year"] for r in gone) == ["2024", "2025"]
     assert all(r["op"] == "remove" and r["id_new"] == "" for r in gone)
+    assert {(r["konsern_old"], r["konsern_new"]) for r in gone} == {("false", "")}
 
     e = events[o["E"]]
     status = {
@@ -227,6 +231,10 @@ def test_every_transition_kind_is_logged(tmp_path):
     ]
     assert [(r["endringstype"], r["op"]) for r in selskap] == [("Resubmitted", "")]
     assert selskap[0]["journalnr_new"] == konsern[0]["journalnr_new"] == "2026773000"
+    assert selskap[0]["event_id"] == konsern[0]["event_id"]
+    assert (selskap[0]["id_old"], selskap[0]["id_new"]) == ("7130000", "7253000")
+    assert (konsern[0]["id_old"], konsern[0]["id_new"]) == ("7130001", "7253001")
+    assert {(r["konsern_old"], r["konsern_new"]) for r in h} == {("true", "true")}
 
     i = {r["endringstype"]: r for r in events[o["I"]]}
     assert i["AgedOut"]["fiscal_year"] == "2022" and i["Ny"]["fiscal_year"] == "2025"
@@ -240,7 +248,7 @@ def test_every_transition_kind_is_logged(tmp_path):
 
     assert o["K"] not in events
     assert manifest["events"] == {
-        "Resubmitted": 5,
+        "Resubmitted": 4,
         "Revised": 1,
         "Status": 3,
         "Sletting": 2,
@@ -366,7 +374,7 @@ def test_finish_month_publishes_changelog_and_recovers_after_a_crash(monkeypatch
     finally:
         state.close()
     manifest = json.loads((remote / "changelog-2026-11/manifest.json").read_text())
-    assert manifest["events"]["Resubmitted"] == 5
+    assert manifest["events"]["Resubmitted"] == 4
     assert (remote / "changelog-2026-11/changes-2026-11.csv").is_file()
     assert (remote / "changelog-2026-11/changes.csv").is_file()
 
@@ -449,7 +457,8 @@ def test_window_is_shared_across_account_types_and_period_start_fixes_are_resubm
     entities = [entity(a), entity(b)]
     prior = {
         a: ok(
-            f(a, 2022, 4000000, "2023100000", typ="KONSERN"),
+            f(a, 2022, 4000000, "2023100000"),
+            f(a, 2022, 4000001, "2023100000", typ="KONSERN"),
             f(a, 2023, 5000000, "2024100000"),
             f(a, 2024, 6000000, "2025100000"),
         ),
@@ -470,8 +479,13 @@ def test_window_is_shared_across_account_types_and_period_start_fixes_are_resubm
     manifest = build_changelog(prior_dir, current_dir, tmp_path / "log")
     assert manifest["events"] == {"AgedOut": 1, "Ny": 1, "Resubmitted": 1}
     events = by_org(read_rows(tmp_path / "log", "delta"))
-    aged = next(r for r in events[a] if r["endringstype"] == "AgedOut")
-    assert (aged["regnskapstype"], aged["fiscal_year"]) == ("KONSERN", "2022")
+    aged = [r for r in events[a] if r["endringstype"] == "AgedOut"]
+    assert len({r["event_id"] for r in aged}) == 1
+    assert {(r["regnskapstype"], r["fiscal_year"], r["op"]) for r in aged} == {
+        ("SELSKAP", "2022", "remove"),
+        ("KONSERN", "2022", "remove"),
+    }
+    assert {(r["konsern_old"], r["konsern_new"]) for r in aged} == {("true", "")}
     (row,) = events[b]
     assert (row["endringstype"], row["path"], row["old_value"], row["new_value"]) == (
         "Resubmitted",
@@ -555,3 +569,117 @@ def test_unrequested_organisations_and_older_table_names_do_not_create_status_ev
     manifest["assets"].pop("organisations.csv")
     (october / "manifest.json").write_text(json.dumps(manifest))
     assert build_changelog(october, november, tmp_path / "log")["events"] == {}
+
+
+def test_a_resubmission_can_remove_or_add_the_konsernregnskap(tmp_path):
+    a, b, c = ORG["A"], ORG["B"], ORG["C"]
+    entities = [entity(a), entity(b), entity(c)]
+    october = make_release(
+        tmp_path,
+        "data-2026-10",
+        "2026-10-06",
+        entities,
+        {
+            a: ok(
+                f(a, 2025, 7228636, "2026765272"),
+                f(a, 2025, 7228638, "2026765272", typ="KONSERN"),
+            ),
+            b: ok(f(b, 2025, 7100000, "2026100000")),
+            c: ok(
+                f(c, 2025, 7300000, "2026300000"),
+                f(c, 2025, 7200002, "2026200000", typ="KONSERN"),
+            ),
+        },
+    )
+    november = make_release(
+        tmp_path,
+        "data-2026-11",
+        "2026-11-03",
+        entities,
+        {
+            # The source keeps serving the KONSERN row of the earlier submission.
+            a: ok(
+                f(a, 2025, 7234708, "2026767063"),
+                f(a, 2025, 7228638, "2026765272", typ="KONSERN"),
+            ),
+            b: ok(
+                f(b, 2025, 7150000, "2026150000"),
+                f(b, 2025, 7150002, "2026150000", typ="KONSERN"),
+            ),
+            c: ok(
+                f(c, 2025, 7300000, "2026300000"),
+                f(c, 2025, 7200002, "2026200000", typ="KONSERN"),
+            ),
+        },
+    )
+    manifest = build_changelog(october, november, tmp_path / "log")
+    assert manifest["events"] == {"Resubmitted": 2}
+    assert manifest["konsern_rows_from_earlier_submissions"] == 2
+    events = by_org(read_rows(tmp_path / "log", "delta"))
+    removed = {r["regnskapstype"]: r for r in events[a]}
+    assert len({r["event_id"] for r in events[a]}) == 1
+    assert (removed["SELSKAP"]["journalnr_old"], removed["SELSKAP"]["journalnr_new"]) == (
+        "2026765272",
+        "2026767063",
+    )
+    assert (removed["SELSKAP"]["konsern_old"], removed["SELSKAP"]["konsern_new"]) == (
+        "true",
+        "false",
+    )
+    assert (
+        removed["KONSERN"]["op"],
+        removed["KONSERN"]["id_old"],
+        removed["KONSERN"]["id_new"],
+    ) == (
+        "remove",
+        "7228638",
+        "",
+    )
+    added = {r["regnskapstype"]: r for r in events[b]}
+    assert (added["SELSKAP"]["konsern_old"], added["SELSKAP"]["konsern_new"]) == ("false", "true")
+    assert (added["KONSERN"]["op"], added["KONSERN"]["id_new"]) == ("add", "7150002")
+    # A KONSERN row left from before the log began is not an event.
+    assert c not in events
+
+
+def test_a_change_log_in_an_older_layout_is_rebuilt_from_the_data_releases(monkeypatch, tmp_path):
+    october, november = two_months(tmp_path)
+    december = make_release(
+        tmp_path,
+        "data-2026-12",
+        "2026-12-02",
+        [entity(ORG["A"], form="AS")],
+        {ORG["A"]: ok(f(ORG["A"], 2025, 7241960, "2026769396", **{"eiendeler.sumEiendeler": 1.0}))},
+    )
+    old = tmp_path / "changelog-2026-11"
+    build_changelog(october, november, old)
+    manifest = json.loads((old / "manifest.json").read_text())
+    manifest["dataset"]["schema_version"] = "regnskap-changelog-csv/v1"
+    (old / "manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(SourceError, match="another layout"):
+        build_changelog(november, december, tmp_path / "refused", previous_changelog=old)
+    remote = {"data-2026-10": october, "data-2026-11": november, "changelog-2026-11": old}
+    published = []
+
+    def gh(*args):
+        if args[0] == "api":
+            return json.dumps(
+                [[{"tag_name": t, "draft": False} for t in [*remote, "data-2026-12"]]]
+            )
+        target = Path(args[args.index("--dir") + 1])
+        shutil.copytree(remote[args[2]], target, dirs_exist_ok=True)
+        return ""
+
+    monkeypatch.setattr(release, "gh", gh)
+    monkeypatch.setattr(
+        release, "publish", lambda repo, directory, tag, target: published.append(tag)
+    )
+    out = tmp_path / "out"
+    shutil.copytree(december, out / "data-2026-12")
+    built = release.publish_changelog("o/r", "2026-12", out, "a" * 40)
+    assert published == ["changelog-2026-12"] and built["prior_cycle"] == "2026-11"
+    cumulative = read_rows(out / "changelog-2026-12", "cumulative")
+    assert list(cumulative[0]) == COLUMNS
+    assert {r["release"] for r in cumulative} == {"2026-11", "2026-12"}
+    ids = [int(r["event_id"]) for r in cumulative]
+    assert ids == sorted(ids) and ids[0] == 1
