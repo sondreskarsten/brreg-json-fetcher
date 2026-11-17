@@ -1,14 +1,57 @@
-# brreg-json-fetcher
+# regnskapsregisteret-dataset
 
-**Unofficial data mirror maintained by [sondreskarsten](https://github.com/sondreskarsten). Not operated, approved or endorsed by Brønnøysundregistrene.**
+**The annual-accounts key figures Regnskapsregisteret publishes, for every organisation it serves, as one monthly CSV download.**
+
+regnskapsregisteret-dataset is a monthly copy of the key figures (nøkkeltall) that Regnskapsregisteret publishes for each organisation: balance sheet, income statement, audit and accounting-principle flags, for company and consolidated accounts. One release per month, checksummed and immutable, with a log of what changed since the month before. It holds what the source API returns: the latest three fiscal years per organisation, and no figures for banks, insurers and other organisations whose accounting plan the API does not support. Those are listed with that outcome instead of being left out.
 
 > Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene.
 
-A monthly snapshot of the annual accounts of every organisation in Enhetsregisteret, including the sole proprietorships (**ENK**) that have filed accounts, published as a ready-to-download CSV dataset. Organisations that later disappear from the register are kept, with a looked-up status explaining why. If you need accounts for many companies, download the finished dataset instead of calling the BRREG API once per organisation. If you need one company, use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/).
+Unofficial mirror maintained by [sondreskarsten](https://github.com/sondreskarsten). Not operated, approved or endorsed by Brønnøysundregistrene. Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0); see [licence scope and changes made by this mirror](DATA_LICENSE.md).
 
-Sources: [Regnskapsregisteret key-figures distribution](https://data.norge.no/en/datasets/7c87f169-2520-4e56-ba2a-b7a3cc7de2e9/regnskapsregisteret) and [Enhetsregisteret](https://data.brreg.no/enhetsregisteret/api/docs/index.html). Licence: [NLOD 2.0](https://data.norge.no/nlod/no/2.0). This mirror filters, samples monthly, converts JSON to CSV and adds provenance. Read [the verified licence scope, changes and Norwegian legal references](DATA_LICENSE.md), including the distinction between source data and software.
+## Use this instead of looking up companies in bulk
 
-## Download the dataset
+The source API answers one organisation per request. Anyone who needs many companies has to send hundreds of thousands of requests, and so does the next person, and the one after. This dataset does that once a month so nobody else has to.
+
+| | Batch lookups against the API | regnskapsregisteret-dataset |
+| --- | --- | --- |
+| Effort | about 720,000 requests, five days at a polite rate | one download |
+| Load on Brønnøysundregistrene | once per researcher, per project, per rerun | once per month in total |
+| History | latest three fiscal years, as they stand today | one release per month since October 2026, so earlier states stay downloadable |
+| Corrections | a resubmitted filing silently replaces the old one | the old version stays in the earlier release, and the change log lists every changed field |
+| Reproducibility | results depend on the day you ran | cite `data-2026-11`; everyone gets the same checksummed bytes |
+| What you did not get | invisible | every organisation has an outcome: accounts, none on file, unsupported accounting plan, left the register and when |
+| Representativeness | unknown | population tables for the whole register, ENK included, with coverage per cell for reweighting |
+
+Corrections are not rare. Between the October and November 2026 releases, 390 filings were resubmitted; 313 of them changed reported figures, mostly equity, debt and the annual result. (Counted with the 0.7.0 rules; the published `changelog-2026-11` predates them and labels 9 of these differently.)
+
+**When to call Brønnøysundregistrene instead:** you need one company, you need today's value, or you need something with legal standing. For a single company use the [lookup page](https://sondreskarsten.github.io/brreg-json-fetcher/) or [data.brreg.no](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs) directly.
+
+## Data product definition
+
+| | |
+| --- | --- |
+| **Product** | A monthly, complete, immutable copy of the annual-accounts key figures (nøkkeltall) that Regnskapsregisteret publishes through its open API |
+| **Source** | `data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`, one request per organisation, plus the full Enhetsregisteret download as the list of organisations |
+| **Population** | Every organisation in Enhetsregisteret, except sole proprietorships (ENK) without a filed annual account. Organisations that later leave the register are kept |
+| **Unit** | One filing: organisation × account type (SELSKAP or KONSERN) × fiscal year |
+| **Content per filing** | About 30 key figures: total assets, current and fixed assets, equity, debt, revenue, operating result, financial items, tax, annual result; plus period, currency, accounting plan, audit and accounting-principle flags, filing id and journal number |
+| **Depth** | The latest three fiscal years the API returns at collection time. Earlier years exist only in earlier releases |
+| **Cadence** | One release per month. The register list is taken at the start of the month and collection takes about five days; each row carries its own observation time |
+| **Format** | UTF-8 CSV with header, one file set per release, described by `manifest.json` and verified by `SHA256SUMS` |
+| **Stability** | A published release never changes. Columns are the union of fields the source returned that month, so new source fields appear as new columns |
+| **Licence** | Source data under NLOD 2.0 with attribution to Brønnøysundregistrene; see `DATA_NOTICE.md` in each release |
+
+**Each month delivers three things:**
+
+| Release | Contents |
+| --- | --- |
+| `data-YYYY-MM` | `accounts*.csv`, the filings. `observations.csv`, one outcome per organisation: accounts returned, none on file, unsupported accounting plan, and register status. `register_*.csv`, population tables for the whole register, ENK included |
+| `changelog-YYYY-MM` | Every difference from the previous month, one row per changed field: new filings, resubmissions, aged-out years, status changes, groups that stopped filing consolidated accounts. Plus the cumulative log |
+| `checkpoint-…` (prerelease) | Recovery state of a collection in progress. Not part of the product; ignore these |
+
+**Not in the product:** the full annual accounts, notes, auditor's report or PDF; line items below the key figures; figures for organisations whose accounting plan the source API does not serve (banks, insurers, pension funds and some others), which are listed with that outcome; anything older than the first release, `data-2026-10`, which covered AS and ASA only.
+
+## Get the data
 
 Completed months are published on the [releases page](https://github.com/sondreskarsten/brreg-json-fetcher/releases) with the tag **`data-YYYY-MM`**. Pick the newest `data-` tag; `checkpoint-` prereleases are recovery state for a collection still in progress, and `v*` releases are the collector software. The lookup page lists the latest completed month and its assets automatically.
 
@@ -21,7 +64,7 @@ https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/data-YYYY
 ```
 
 ```bash
-TAG=data-2026-10  # Choose an existing completed data release.
+TAG=data-2026-11  # Choose an existing completed data release.
 BASE="https://github.com/sondreskarsten/brreg-json-fetcher/releases/download/$TAG"
 curl -fSLO "$BASE/manifest.json"
 # The manifest names every independently readable CSV, including split files.
@@ -53,7 +96,7 @@ sha256sum -c --ignore-missing SHA256SUMS
 | `DATA_NOTICE.md` | Source attribution, NLOD link, changes and unofficial-mirror notice |
 | `manifest.json`, `SHA256SUMS` | CSV schema, row counts, cycle, provenance, coverage and checksums |
 
-The 6 October 2026 register download held 1,176,724 records, of which 712,513 were not ENK and 3,987 were ENK with a filed annual account, giving 716,500 eligible entities. Earlier months (`data-2026-10` and before) covered only AS/ASA with a reported annual-account year: 402,763 entities. These are observed counts for that download, not fixed expectations.
+`data-2026-11` covers 719,866 organisations from a register of 1,184,327 and holds 1,240,276 filings. `data-2026-10` covered only AS and ASA with a reported annual-account year: 402,763 organisations. Counts change every month.
 
 ### Reading the CSV
 
@@ -94,211 +137,16 @@ Columns: `event_id, release, orgnr, regnskapstype, fiscal_year, endringstype, jo
 
 The cumulative file refuses to chain onto a previous change log for any cycle other than the prior data release, so a skipped month cannot leave a silent gap. Two transitions inside one month collapse into one net transition, and a resubmission reversed before the next release is invisible: Regnskapsregisteret has no update feed, so the log records net monthly transitions. A `Revised` event has no date of its own beyond the release month.
 
-The **Change-log smoke test** workflow collects a sample (random, or a given list of orgnrs) against the live API, exports it as a mini release and builds the log against the newest published data release in sample mode, which ignores organisations outside the sample. Its output is a workflow artifact, never a release.
+## How to cite
 
-Before collecting accounts, the workflow calls the production `Client.entity` and
-`decode_register` for an active control, two units reported as deleted in the
-25 October 2026 update feed, and an unknown-number control. This explicitly tests
-the single-entity endpoint even when no organisation is missing from the sample
-seed. Deleted controls must include a deletion date. Raw response bodies, hashes,
-HTTP statuses and decoded outcomes are retained in the artifact, including on
-failure. Run this check alone with `uv run python -m scripts.register_smoke`.
-These fixed controls may need replacement if their source status changes.
-This check does not simulate a new monthly bulk seed or establish full-population
-throughput; the accounts sample checks runner download, export and comparison.
+Cite the release tag, which is immutable:
+
+> regnskapsregisteret-dataset, release `data-2026-11`. Unofficial monthly mirror of Regnskapsregisteret key figures. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Brønnøysundregistrene. https://github.com/sondreskarsten/brreg-json-fetcher/releases/tag/data-2026-11
 
 ## Look up one organisation
 
-[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) is a static page served from the [`gh-pages`](https://github.com/sondreskarsten/brreg-json-fetcher/tree/gh-pages) branch, kept apart from the collector code on `main`. Enter a nine-digit organisasjonsnummer and select **Fetch**. Organisation numbers are not added to the site URL. Old `?orgnr=…` parameters are cleared without prefilling or starting a lookup. This prevents link-triggered requests; it is not server-side authentication or rate limiting. The browser calls
+[sondreskarsten.github.io/brreg-json-fetcher](https://sondreskarsten.github.io/brreg-json-fetcher/) fetches one organisation's accounts in the browser and offers a per-filing CSV. It also lists the latest monthly release. Details and caveats are in [docs/COLLECTOR.md](docs/COLLECTOR.md#lookup-page).
 
-```text
-GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}
-```
+## How it is made
 
-using a direct request first, then **Jina Reader** and **AllOrigins** if direct access fails. Each attempt has a 30-second timeout, and proxy failures or unexpected response formats are skipped. The page validates organisation identity, displays a parsed filing table with type, period, currency and financial figures, and offers both the returned JSON/XML and a CSV download. The CSV has one filing per row, repeats organisation and journal identifiers, includes all returned fields as dotted columns, and records the route and format. Fields first appearing in later filings are retained. Formula-like text is escaped for spreadsheet safety; negative numeric amounts are preserved. The original response and all parsed fields remain inspectable. Proxy providers can see the requested organisation number and response; this page has no server of its own and does not use a private proxy or API key.
-
-Jina Reader may return reformatted XML rather than original JSON. Its HTML processing can change XML field nesting, so reader previews and CSV/raw downloads are explicitly labelled with a `-reader` filename and warning. CSV preserves the returned XML tag casing and nesting; it does not silently repair fields. Use the monthly CSV or the linked original BRREG response for structured analysis. The monthly collector requests JSON directly and does not use these public proxies.
-
-A live Chromium test of organisation `964118191` returned six filings through Jina Reader, rendered six table rows and downloaded both labelled XML and CSV. CSV readback confirmed six filing IDs, three shared journal numbers and the organisation number on every row. Public-proxy availability is not guaranteed; failures remain visible. The page also lists the latest completed monthly dataset through GitHub's releases API.
-
-## How the data is collected
-
-### Monthly seed
-
-At the start of each collection month, download the complete Enhetsregisteret main-entity register:
-
-```text
-GET https://data.brreg.no/enhetsregisteret/api/enheter/lastned
-```
-
-Keep every record except an **ENK** without `sisteInnsendteAarsregnskap`. Only sole proprietorships above the thresholds in regnskapsloven § 1-2 nr. 11 (assets over NOK 20 million or more than 20 full-time equivalents) have regnskapsplikt, and the filed year is the only register field that identifies them. For every other legal form `sisteInnsendteAarsregnskap` is retained as `latest_filing_year` but no longer filters. Organisations collected in an earlier month that are absent from the new download are never removed: they stay in the queue, and each one is looked up individually in Enhetsregisteret so the dataset can report whether it was deleted (and when), is unknown, or is still registered. The seed and its original compressed source download are frozen for the whole collection, even if it runs into the next month.
-
-Every eligible entity is fetched once successfully per cycle, with retries for temporary failures. The collector no longer reads announcements or the accounts API load log. New account submissions are picked up by the next monthly full collection.
-
-### Multi-day collection on GitHub runners
-
-The **Monthly data collection** workflow runs on `ubuntu-latest`:
-
-1. Inspect the latest monthly data release or recovery checkpoint. If the current month's data release is already complete, stop after reading its manifest.
-2. Restore unfinished work. If a new month is due and the previous collection is finished and published, download a fresh seed and queue every eligible entity.
-3. Run up to **three one-hour fetch segments**, using four workers. After each segment, publish a durable recovery checkpoint. In-flight requests and export/upload time are additional to the fetch budget; the overall job has a 330-minute limit.
-4. If work remains, the next daily continuation restores the queue. Completed entities are not fetched again for that month. Retryable failures remain queued and visibly prevent completion.
-5. Once the queue is finished, publish **`data-YYYY-MM`** with the original seed download, account exports, request outcomes, history, and a resumable checkpoint.
-6. Download the previous month's data release and publish **`changelog-YYYY-MM`** with the differences. A crash between the two publications is recovered on the next run. A change-log failure is recorded in the checkpoint as `changelog_error` and retried on later runs of that month, but it never blocks the next month's collection; after a month boundary, publish it by hand with `scripts/release.py changelog`.
-
-The scheduler has a monthly-start trigger on the first day and continuation triggers on the remaining days, at **04:17 UTC** (05:17 Oslo in winter, 06:17 in summer). These are continuation checks, not daily reseeding or daily data releases. When a monthly release is complete, remaining checks that month make no BRREG requests and do not download the large checkpoint.
-
-If October's batch is still running in November, it keeps October's seed and finishes/publishes October first. A subsequent run downloads the current month's seed. Missed historical months cannot be reconstructed from today's register/API; the collector does not manufacture backdated snapshots.
-
-Scheduled collection and daily continuation runs are enabled when the workflow is on the default branch. For the first manual run, select `bootstrap: true`; later manual runs resume existing state. The built-in `GITHUB_TOKEN` needs `contents: write`. Runs are serialised to protect the queue.
-
-#### Recovery and completion
-
-- `checkpoint-YYYY-MM-...` prereleases contain recovery state. They are not completed monthly datasets. They have no short artifact-retention deadline, so a long collection can resume days or weeks later.
-- The first checkpoint for a month also stores the full original Enhetsregisteret download. Later checkpoints reference it by release tag and SHA-256 instead of reuploading it each hour. The final monthly release includes the verified original download again.
-- Each response is committed locally. An abrupt runner loss can require repeating work since the last successfully published segment checkpoint; it does not discard earlier segments. Retrying a request preserves response/history identity through hashes and filing IDs.
-- A failed checkpoint upload leaves a draft; subsequent runs restore the last published checkpoint. Files left by publication failures are also saved as workflow artifacts for 30 days when possible.
-- A crash after the final checkpoint but before the monthly data release, or between the data release and its change log, is handled on the next run: it publishes what is missing for that finished month before starting another seed.
-- `404` and recognised unsupported accounting plans are recorded terminal outcomes. Network/rate-limit/server failures retain pending work. A finished queue means every seed entity has a terminal outcome, not that every entity returned supported accounts.
-
-### Run locally
-
-Python 3.12 and [uv](https://docs.astral.sh/uv/) are required:
-
-```bash
-uv sync --frozen
-uv run brreg-fetch collect --workers 4 --max-seconds 3600
-uv run brreg-fetch status
-# Rerun collect to resume the same month until its queue is finished.
-uv run brreg-fetch export --output dist/data --entity-snapshot data/enheter.json.gz
-```
-
-State defaults to `data/checkpoint.sqlite3`; the original bulk copy defaults to `data/enheter.json.gz`. Use `--max-entities` for a bounded account sample (the initial source download still covers the full register). `runner.py` and `parser.py` remain compatibility entry points for `collect` and `export`. Use one collector/export process per checkpoint at a time.
-
-For frequent local recovery exports without regenerating all data views:
-
-```bash
-uv run brreg-fetch export --checkpoint-only --output dist/checkpoint
-```
-
-For a downloaded release:
-
-```bash
-(cd downloaded-release && sha256sum -c SHA256SUMS)
-uv run brreg-fetch restore --from downloaded-release --state data/checkpoint.sqlite3
-```
-
-Restore verifies part checksums, the assembled checksum, SQLite integrity, and schema compatibility. It refuses to overwrite an existing checkpoint. Older checkpoints are migrated; their filing/response history is preserved, while their old work selection is replaced by a fresh monthly seed. Checkpoints from the AS/ASA-only months gain the register columns, and their previously ignored legal forms become eligible at the next seed.
-
-Exit code `2` means account errors remain; `1` means a source/configuration/export failure. Reaching a segment budget is a successful partial run. Neither a partial run nor an incomplete local export is published as a completed monthly data release.
-
-### Export details
-
-The CSV layout is described under [Reading the CSV](#reading-the-csv). Pending rows occur only in incomplete local exports.
-
-At each new month, the current filing view is cleared and rebuilt. Exports use only this cycle's observations; older successes cannot masquerade as new observations. Historical filings and exact response bytes remain in the checkpoint.
-
-An individual CSV record exceeding the 1 GiB asset limit fails export. Incomplete uploads stay drafts until the full asset set is verified.
-
-Version-matching `v*` tags build a wheel/source **software release draft**, separately from monthly data releases.
-
-To build a change log locally from two downloaded data releases, or to publish the one a month is missing:
-
-```bash
-uv run python -c "from brreg_fetcher.changelog import build_changelog; build_changelog('downloaded-data-2026-10', 'downloaded-data-2026-11', 'dist/changelog-2026-11')"
-uv run python scripts/release.py changelog --repo OWNER/REPO --tag data-2026-11 --target COMMIT --directory dist/monthly
-```
-
-### What the accounts API returns
-
-`GET https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`
-
-OpenAPI version **1.1.16**. Optional parameters are `år` (integer) and `regnskapstype` (`SELSKAP` or `KONSERN`). The year selects the calendar year of `regnskapsperiode.tilDato`, including non-calendar fiscal years and start-up periods spanning more than one year.
-
-| Status | Body and handling |
-| --- | --- |
-| `200` | A JSON array of filings. Preserve and validate the entire array. |
-| `404` | No accounts available through this endpoint. Record the result; retain historical filings. |
-| `500` | An error object, potentially including `timestamp`, `status`, `error`, `message`, `path`, `trace`. Preserve it. Recognised unsupported-plan messages are reported separately from transient failures. |
-| `429`, transient `5xx`, connection failures | Bounded retries with backoff; unfinished work remains queued. A rate-limit message inside a `200` response is also rejected. |
-
-The supplied observations date a behaviour change to **1 October 2026**: the default response changed from the latest company-level filing to up to three fiscal years per type, KONSERN before SELSKAP, with periods ascending within each type. A live check on 6 October 2026 returned six filings consistent with that behaviour. The collector preserves every returned object and does not rely on the order or a fixed maximum count.
-
-The supplied probes found that explicit year/type requests reveal no years beyond the default response; older years return `404`. Historical coverage therefore starts with what was available at the first collection and grows from observations. The tool does not claim to reconstruct filings that disappeared before collection began.
-
-Since the reported change, unsupported-plan error messages name plans such as `IDEELL`, `VPFO`, `BANK`, `PENSJ`, `SKADE`, `LIV`, `FUNK`, and `BEGREN`. Those errors are not converted into empty successful responses.
-
-A filing contains:
-
-```text
-id: integer, unique per filing
-journalnr: string
-regnskapstype: SELSKAP | KONSERN
-virksomhet: { organisasjonsnummer, organisasjonsform, morselskap }
-regnskapsperiode: { fraDato, tilDato }
-valuta: NOK | USD | EUR | SEK | DKK | GBP | …
-avviklingsregnskap: boolean
-oppstillingsplan: smaa | store | oevrige
-revisjon: { ikkeRevidertAarsregnskap, fravalgRevisjon }
-regnkapsprinsipper: { smaaForetak, regnskapsregler }
-egenkapitalGjeld: {
-  sumEgenkapitalGjeld,
-  egenkapital: {
-    sumEgenkapital,
-    innskuttEgenkapital: { sumInnskuttEgenkaptial },
-    opptjentEgenkapital: { sumOpptjentEgenkapital }
-  },
-  gjeldOversikt: {
-    sumGjeld,
-    kortsiktigGjeld: { sumKortsiktigGjeld },
-    langsiktigGjeld: { sumLangsiktigGjeld }
-  }
-}
-eiendeler: {
-  sumEiendeler,
-  omloepsmidler: { sumOmloepsmidler },
-  anleggsmidler: { sumAnleggsmidler },
-  sumBankinnskuddOgKontanter, sumFordringer, sumInvesteringer,
-  sumVarer, goodwill
-}
-resultatregnskapResultat: {
-  aarsresultat, ordinaertResultatFoerSkattekostnad, totalresultat,
-  ordinaertResultatSkattekostnad, ekstraordinaerePoster,
-  skattekostnadEkstraordinaertResultat,
-  driftsresultat: {
-    driftsresultat,
-    driftsinntekter: { sumDriftsinntekter, salgsinntekter },
-    driftskostnad: { sumDriftskostnad, loennskostnad }
-  },
-  finansresultat: {
-    nettoFinans,
-    finansinntekt: { sumFinansinntekter },
-    finanskostnad: {
-      sumFinanskostnad, annenRentekostnad, rentekostnadSammeKonsern
-    }
-  }
-}
-```
-
-Source spellings such as `regnkapsprinsipper` and `sumInnskuttEgenkaptial` are preserved. `regnskapsregler` may be `regnskapslovenAlminneligRegler`, `forenkletAnvendelseIFRS`, or `IFRS`. Amounts are JSON numbers in full units of `valuta`. An absent leaf is not zero; parent objects can be empty.
-
-The supplied research identifies the five additional asset leaves, the three tax/extraordinary-result leaves, `salgsinntekter`, `loennskostnad`, `annenRentekostnad`, and `rentekostnadSammeKonsern` as additions on 1 October 2026, including retroactive additions to existing filings. CSV discovers the union of field paths across all current filings before writing and includes complete filing JSON in `_meta.filing_json`. Missing and explicit null leaves are blank in flattened columns; the JSON representation preserves the distinction.
-
-The stable **logical account key** is `(organisasjonsnummer, regnskapstype, year(tilDato))`. The **filing identity** is its `id`. A new ID for the same logical key is a resubmission. `journalnr` can be shared by SELSKAP and KONSERN and is not a unique filing key. The collector also hashes content: a changed response with the same ID is recorded as a content revision, not a resubmission.
-
-Other API paths, relative to `/regnskapsregisteret/regnskap`, include `/{orgnr}/{id}`, `/aarsregnskap/kopi/{orgnr}/aar`, `/aarsregnskap/kopi/{orgnr}/{aar}`, `/aarsregnskap/mellombalanse/{orgnr}/aar`, and `/aarsregnskap/mellombalanse/{orgnr}/{id}`. PDF copies and interim-balance retrieval are outside this collector's scope.
-
-### Validation
-
-```bash
-uv run pytest -q
-uv run ruff check .
-uv run ruff format --check .
-uv build
-```
-
-Tests cover frozen seeds, restart recovery, retries, month boundaries, publication interruption, full-field exports, and source/checkpoint verification. The multi-run lifecycle tests use real SQLite/export/restore operations with simulated source HTTP and GitHub uploads.
-
-The **Live BRREG API sample** workflow remains available on manual dispatch or `api-check-*` tags. It downloads the full seed and fetches five AS plus five ASA entities, retaining actual raw JSON and exports as artifacts. The 6 October test returned **33 filings from eight successful responses**, plus two unsupported BANK-plan responses. It does not launch a full monthly collection.
-
-Sources: [BRREG API repository](https://github.com/brreg/regnskapsregister-api), [live OpenAPI](https://data.brreg.no/regnskapsregisteret/regnskap/v3/api-docs), [entity-register API](https://data.brreg.no/enhetsregisteret/api/docs/index.html).
+A scheduled GitHub Actions workflow downloads the full Enhetsregisteret at the start of each month (later if the previous month is still being finished; the seed date is in every release), fetches every eligible organisation once over several days, and publishes the release when the queue is empty. The collector, its recovery behaviour, the source API's quirks and how to run it yourself are documented in [docs/COLLECTOR.md](docs/COLLECTOR.md). Release history of the software is in [CHANGELOG.md](CHANGELOG.md).

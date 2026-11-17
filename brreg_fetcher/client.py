@@ -12,6 +12,8 @@ from pathlib import Path
 import ijson
 import requests
 
+from . import __version__
+
 ACCOUNTS_URL = "https://data.brreg.no/regnskapsregisteret/regnskap"
 ENTITIES_URL = "https://data.brreg.no/enhetsregisteret/api/enheter/lastned"
 ENTITY_URL = "https://data.brreg.no/enhetsregisteret/api/enheter"
@@ -44,7 +46,7 @@ def unsupported_plan(status, message):
 class Client:
     def __init__(self, session=None, attempts=4, pause=0.1, sleep=time.sleep, snapshot_path=None):
         self.session = session or requests.Session()
-        self.session.headers.update({"User-Agent": "brreg-json-fetcher/0.6.0"})
+        self.session.headers.update({"User-Agent": f"brreg-json-fetcher/{__version__}"})
         self.attempts = attempts
         self.pause = pause
         self.sleep = sleep
