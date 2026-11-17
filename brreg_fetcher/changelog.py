@@ -1,4 +1,4 @@
-"""Month-over-month change log of filings and lookup status, shaped like an update feed."""
+"""Month-over-month change log of regnskap and lookup status, shaped like an update feed."""
 
 import csv
 import json
@@ -13,16 +13,18 @@ from .attribution import NOTICE, data_provenance
 from .client import SourceError
 from .export import DEFAULT_ASSET_BYTES, flatten, sha256_file, write_csv
 
-SCHEMA = "regnskap-changelog-csv/v1"
+SCHEMA = "regnskap-changelog-csv/v2"
 COLUMNS = [
     "event_id",
     "release",
     "orgnr",
-    "regnskapstype",
     "fiscal_year",
     "endringstype",
     "journalnr_old",
     "journalnr_new",
+    "konsern_old",
+    "konsern_new",
+    "regnskapstype",
     "id_old",
     "id_new",
     "op",
@@ -189,40 +191,41 @@ class Events:
         self.next_id = first_id
         self.rows = []
         self.counts = {}
+        self.leftover_konsern = 0
 
     def drain(self):
         rows, self.rows = self.rows, []
         return rows
 
-    def event(self, orgnr, endringstype, operations, *, key=None, old=None, new=None):
+    def event(self, orgnr, endringstype, parts, *, fiscal_year="", old=None, new=None):
         event_id = self.next_id
         self.next_id += 1
         self.counts[endringstype] = self.counts.get(endringstype, 0) + 1
-        regnskapstype, fiscal_year = key or ("", "")
         base = {
             "event_id": event_id,
             "release": self.release,
             "orgnr": orgnr,
-            "regnskapstype": regnskapstype,
             "fiscal_year": fiscal_year,
             "endringstype": endringstype,
             "journalnr_old": old["journalnr"] if old else "",
             "journalnr_new": new["journalnr"] if new else "",
-            "id_old": old["id"] if old else "",
-            "id_new": new["id"] if new else "",
+            "konsern_old": text(old["konsern"] is not None) if old else "",
+            "konsern_new": text(new["konsern"] is not None) if new else "",
         }
-        if not operations:
-            operations = [("", "", None, None)]
-        for op, path, old_value, new_value in operations:
-            self.rows.append(
-                {
-                    **base,
-                    "op": op,
-                    "path": path,
-                    "old_value": text(old_value),
-                    "new_value": text(new_value),
-                }
-            )
+        for regnskapstype, before, after, operations in parts:
+            for op, path, old_value, new_value in operations or [("", "", None, None)]:
+                self.rows.append(
+                    {
+                        **base,
+                        "regnskapstype": regnskapstype,
+                        "id_old": before["id"] if before else "",
+                        "id_new": after["id"] if after else "",
+                        "op": op,
+                        "path": path,
+                        "old_value": text(old_value),
+                        "new_value": text(new_value),
+                    }
+                )
 
 
 def status_events(events, orgnr, prior, current, fields=STATUS_FIELDS):
@@ -237,21 +240,72 @@ def status_events(events, orgnr, prior, current, fields=STATUS_FIELDS):
             ("replace", f, prior[f], current[f]) for f in fields if prior[f] != current[f]
         ]
     if operations:
-        events.event(orgnr, "Status", operations)
+        events.event(orgnr, "Status", [("", None, None, operations)])
+
+
+def regnskap_of(filings):
+    """One regnskap per SELSKAP row, with the KONSERN row submitted on the same journalnr.
+
+    A KONSERN row on any other journalnr belongs to an earlier submission of that year and is
+    returned separately.
+    """
+    selskap = {key[1:]: row for key, row in filings.items() if key[0] == "SELSKAP"}
+    journalnr = {row["journalnr"] for row in selskap.values()}
+    konsern = {row["journalnr"]: row for key, row in filings.items() if key[0] == "KONSERN"}
+    regnskap = {
+        key: {**row, "konsern": konsern.get(row["journalnr"])} for key, row in selskap.items()
+    }
+    return regnskap, [row for nr, row in konsern.items() if nr not in journalnr]
+
+
+def parts_of(old, new):
+    """Field operations for the SELSKAP part and the KONSERN part of one regnskap."""
+    parts = []
+    pairs = (
+        ("SELSKAP", old, new),
+        ("KONSERN", old and old["konsern"], new and new["konsern"]),
+    )
+    for regnskapstype, before, after in pairs:
+        if before is None and after is None:
+            continue
+        if before is None:
+            operations = [("add", "", None, after["sha256"])]
+        elif after is None:
+            operations = [("remove", "", before["sha256"], None)]
+        elif before["sha256"] == after["sha256"]:
+            operations = []
+        else:
+            operations = list(field_changes(before["filing"], after["filing"]))
+        parts.append((regnskapstype, before, after, operations))
+    return parts
+
+
+def identity(regnskap):
+    konsern = regnskap["konsern"]
+    return (
+        regnskap["journalnr"],
+        regnskap["id"],
+        regnskap["sha256"],
+        konsern and (konsern["id"], konsern["sha256"]),
+    )
+
+
+def resubmitted(old, new):
+    ids = lambda r: (r["journalnr"], r["id"], r["konsern"] and r["konsern"]["id"])
+    return ids(old) != ids(new)
 
 
 def filing_events(events, orgnr, prior, current):
-    """Match filings of one organisation across releases and emit transitions."""
+    """Match the regnskap of one organisation across releases and emit transitions."""
+    prior, _ = regnskap_of(prior)
+    current, leftover = regnskap_of(current)
+    events.leftover_konsern += len(leftover)
     prior_only = {k: v for k, v in prior.items() if k not in current}
     current_only = {k: v for k, v in current.items() if k not in prior}
     for key in sorted(prior_only):
         old = prior_only[key]
         moved = next(
-            (
-                k
-                for k in sorted(current_only)
-                if k[0] == key[0] and current_only[k]["journalnr"] == old["journalnr"]
-            ),
+            (k for k in sorted(current_only) if current_only[k]["journalnr"] == old["journalnr"]),
             None,
         )
         if moved is None:
@@ -259,84 +313,76 @@ def filing_events(events, orgnr, prior, current):
         new = current_only.pop(moved)
         del prior_only[key]
         events.event(
-            orgnr,
-            "KeyChanged",
-            list(field_changes(old["filing"], new["filing"])),
-            key=moved[:2],
-            old=old,
-            new=new,
+            orgnr, "KeyChanged", parts_of(old, new), fiscal_year=moved[0], old=old, new=new
         )
-    # A resubmission that corrects the period start keeps its type and fiscal year but not
-    # its full key; pair it instead of reporting a deletion and a new filing.
+    # A resubmission that corrects the period start keeps its fiscal year but not its full
+    # key; pair it instead of reporting a deletion and a new regnskap.
     for key in sorted(prior_only):
-        same_year = [k for k in sorted(current_only) if k[:2] == key[:2]]
-        if len(same_year) != 1 or sum(k[:2] == key[:2] for k in prior_only) != 1:
+        same_year = [k for k in sorted(current_only) if k[0] == key[0]]
+        if len(same_year) != 1 or sum(k[0] == key[0] for k in prior_only) != 1:
             continue
         old, new = prior_only.pop(key), current_only.pop(same_year[0])
-        changed = old["journalnr"] != new["journalnr"] or old["id"] != new["id"]
         events.event(
             orgnr,
-            "Resubmitted" if changed else "Revised",
-            list(field_changes(old["filing"], new["filing"])),
-            key=key[:2],
+            "Resubmitted" if resubmitted(old, new) else "Revised",
+            parts_of(old, new),
+            fiscal_year=key[0],
             old=old,
             new=new,
         )
     for key in sorted(set(prior) & set(current)):
         old, new = prior[key], current[key]
-        if old["sha256"] == new["sha256"] and old["id"] == new["id"]:
+        if identity(old) == identity(new):
             continue
-        if old["journalnr"] != new["journalnr"] or old["id"] != new["id"]:
-            kind = "Resubmitted"
-        else:
-            kind = "Revised"
-        operations = list(field_changes(old["filing"], new["filing"]))
-        events.event(orgnr, kind, operations, key=key[:2], old=old, new=new)
-    # The API returns the latest three fiscal years across both account types, so an old
-    # KONSERN year leaves when a newer SELSKAP year arrives, and the other way round.
-    newest = max((key[1] for key in current), default=None)
+        events.event(
+            orgnr,
+            "Resubmitted" if resubmitted(old, new) else "Revised",
+            parts_of(old, new),
+            fiscal_year=key[0],
+            old=old,
+            new=new,
+        )
+    # The API returns the latest three fiscal years, so the oldest regnskap leaves when a
+    # newer year arrives.
+    newest = max((key[0] for key in current), default=None)
     for key in sorted(prior_only):
         old = prior_only[key]
-        aged = newest is not None and key[1] < newest - (WINDOW_YEARS - 1)
+        aged = newest is not None and key[0] < newest - (WINDOW_YEARS - 1)
         events.event(
             orgnr,
             "AgedOut" if aged else "Sletting",
-            [("remove", "", old["sha256"], None)],
-            key=key[:2],
+            parts_of(old, None),
+            fiscal_year=key[0],
             old=old,
         )
     for key in sorted(current_only):
         new = current_only[key]
-        events.event(orgnr, "Ny", [("add", "", None, new["sha256"])], key=key[:2], new=new)
+        events.event(orgnr, "Ny", parts_of(None, new), fiscal_year=key[0], new=new)
     konsern_ended(events, orgnr, prior, current)
 
 
 def konsern_ended(events, orgnr, prior, current):
     """A company that filed consolidated accounts for one year and none for the next.
 
-    Consolidated accounts are part of the same submission as the company accounts, so a
-    SELSKAP filing without a KONSERN filing for its year means the submission had none.
+    Logged when the later year first appears. A konsernregnskap that leaves an existing year
+    is a resubmission and is logged there, with `konsern_old` true and `konsern_new` false.
     """
-    konsern = {key[1] for key in (*prior, *current) if key[0] == "KONSERN"}
-    current_konsern = {key[1] for key in current if key[0] == "KONSERN"}
-    prior_keys = {key[:2] for key in prior}
+    konsern = {key[0] for side in (prior, current) for key, r in side.items() if r["konsern"]}
+    prior_years = {key[0] for key in prior}
     for key in sorted(current):
-        kind, year = key[:2]
-        if kind != "SELSKAP" or year in current_konsern or year - 1 not in konsern:
+        year, new = key[0], current[key]
+        if new["konsern"] or year in prior_years or year - 1 not in konsern:
             continue
-        # Already the case last month unless the SELSKAP year is new or its KONSERN left.
-        if ("SELSKAP", year) in prior_keys and ("KONSERN", year) not in prior_keys:
-            continue
-        new = current[key]
         parent = ((new["filing"] or {}).get("virksomhet") or {}).get("morselskap")
+        operations = [
+            ("replace", "konsernregnskap.last_fiscal_year", year - 1, None),
+            ("replace", "virksomhet.morselskap", None, parent),
+        ]
         events.event(
             orgnr,
             "KonsernEnded",
-            [
-                ("replace", "konsernregnskap.last_fiscal_year", year - 1, None),
-                ("replace", "virksomhet.morselskap", None, parent),
-            ],
-            key=key[:2],
+            [("SELSKAP", None, new, operations)],
+            fiscal_year=year,
             new=new,
         )
 
@@ -408,6 +454,10 @@ def previous_cumulative(directory, prior_cycle):
     manifest = read_manifest(directory)
     if manifest.get("kind") != "changelog":
         raise SourceError("Previous changelog release has the wrong kind")
+    if (manifest.get("dataset") or {}).get("schema_version") != SCHEMA:
+        raise SourceError(
+            "Previous change log has another layout; rebuild it from the data releases"
+        )
     if manifest.get("cycle") != prior_cycle:
         raise SourceError(
             f"Previous change log covers {manifest.get('cycle')}, not {prior_cycle}; "
@@ -478,12 +528,15 @@ def build_changelog(
         "sample": sample,
         "complete": not sample,
         "events": events.counts,
+        "konsern_rows_from_earlier_submissions": events.leftover_konsern,
         "dataset": {
             "schema_version": SCHEMA,
             "format": "csv",
             "encoding": "utf-8",
             "delimiter": ",",
             "grain": "one row per field operation; rows of one transition share event_id",
+            "unit": "one regnskap: an organisation and fiscal year, identified by the "
+            "journalnr of its SELSKAP row, with the KONSERN row on the same journalnr",
             "columns": COLUMNS,
             "endringstyper": [
                 "Ny",
