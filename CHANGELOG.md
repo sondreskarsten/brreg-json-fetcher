@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
+
+- The project is presented as **open-regnskap**, a data source. The README leads with what the dataset is and why to use it instead of batch lookups against the source API; collector documentation moves to `docs/COLLECTOR.md`. Repository URLs are unchanged until the repository itself is renamed, after which GitHub redirects them.
+- Add `CITATION.cff`. Remove the retired Cloud Run entry points `Dockerfile`, `runner.py` and `parser.py`; use `brreg-fetch collect` and `brreg-fetch export`.
 
 - Change log: new `KonsernEnded` event when a company that filed consolidated accounts for one fiscal year files only company accounts for the next. Consolidated accounts are part of the same submission, so their absence is a property of the filing, not a delay.
 - Change log: an old KONSERN year that leaves the response because a newer SELSKAP year arrived (or the reverse) is `AgedOut`, not `Sletting`; the API's three-year window is shared across account types. A resubmission that changes the period start is one `Resubmitted` event instead of a `Sletting` plus a `Ny`. `changelog-2026-11` was built before this fix: 25 of its 34 `Sletting` events are aged-out KONSERN years and 9 are period-start resubmissions paired with a `Ny` row.

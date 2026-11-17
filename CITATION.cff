@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: open-regnskap
+message: Cite the immutable release tag you used, for example data-2026-11.
+type: dataset
+authors:
+  - name: sondreskarsten
+repository-code: https://github.com/sondreskarsten/brreg-json-fetcher
+abstract: >-
+  Unofficial monthly mirror of the annual-accounts key figures published by
+  Regnskapsregisteret, with register population tables and a month-over-month
+  change log. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0
+  tilgjengeliggjort av Brønnøysundregistrene.
+license-url: https://data.norge.no/nlod/no/2.0
+keywords:
+  - Norway
+  - annual accounts
+  - regnskap
+  - Brønnøysundregistrene
+  - open data

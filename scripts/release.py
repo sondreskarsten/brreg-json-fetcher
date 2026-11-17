@@ -206,7 +206,7 @@ def publish(repo, directory, tag, target):
     notes = directory.parent / "release-notes.md"
     kind = "recovery checkpoint" if checkpoint else "change log" if changelog else "monthly data"
     notes.write_text(
-        f"Unofficial BRREG {kind}: {cycle}.\n\n"
+        f"open-regnskap {kind}: {cycle}. Unofficial mirror of Regnskapsregisteret key figures.\n\n"
         f"{ATTRIBUTION} [NLOD 2.0]({LICENCE_URL}).\n\n"
         "Independent mirror by sondreskarsten; not operated or endorsed by Brønnøysundregistrene. "
         "Monthly selection and CSV conversion are changes made by this mirror. "
@@ -247,7 +247,7 @@ def publish(repo, directory, tag, target):
             target,
             "--draft",
             "--title",
-            f"BRREG {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}",
+            f"open-regnskap {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}",
             "--notes-file",
             str(notes),
         )

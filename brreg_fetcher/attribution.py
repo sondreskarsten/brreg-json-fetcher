@@ -10,9 +10,9 @@ ATTRIBUTION = (
     "Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 "
     "tilgjengeliggjort av Brønnøysundregistrene."
 )
-NOTICE = f"""# Unofficial BRREG data mirror / Uoffisielt dataspeil
+NOTICE = f"""# open-regnskap: unofficial BRREG data mirror / uoffisielt dataspeil
 
-{REPOSITORY} is an independent mirror maintained by sondreskarsten.
+open-regnskap ({REPOSITORY}) is an independent mirror maintained by sondreskarsten.
 It is not operated, approved or endorsed by Brønnøysundregistrene.
 Brønnøysundregistrene is the source provider, not the author of this mirror.
 
