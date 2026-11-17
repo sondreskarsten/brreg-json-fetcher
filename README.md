@@ -107,7 +107,7 @@ Also present: `id`, the source's internal row number (unique per row; `journalnr
 
 New fields at the source appear as new columns, so select columns by name. Source spellings are kept as they are, including `regnkapsprinsipper` and `sumInnskuttEgenkaptial`.
 
-**Good to know.** A consolidated row occasionally has a different `journalnr` from the company row for the same year (9 cases in `data-2026-11`). The company accounts were then resubmitted without the group accounts, and the source still shows the group accounts from the earlier submission.
+**Good to know.** A consolidated row occasionally has a different `journalnr` from the company row for the same year (9 cases in `data-2026-11`). In every such case the annual-accounts document Brønnøysundregistrene currently holds for that year is the company row's regnskap, and it contains no consolidated accounts. Treat a `KONSERN` row whose `journalnr` has no `SELSKAP` row as left over from a submission that is no longer the current one.
 
 ### organisations
 
