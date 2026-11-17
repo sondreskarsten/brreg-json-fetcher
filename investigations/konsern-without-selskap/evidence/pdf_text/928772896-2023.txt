@@ -1,0 +1,689 @@
+===== page 1 of 22 =====
+==
+—= "
+== Brønnøysundregistrene
+ÅRSREGNSKAP FOR REGNSKAPSÅRET 2023 - GENERELL INFORMASJON
+Journalnummer: 2024 403828
+Enheten
+Organisasjonsnummer: 928 772 896
+Organisasjonsform: Aksjeselskap
+Foretaksnavn: ALBATRELL HOLDING AS
+Forretningsadresse: Askeladden 3
+2323 INGEBERG
+Regnskapsår
+Årsregnskapets periode: 01.01.2023 - 31.12.2023
+Konsern
+Morselskap i konsern: Ja
+Konsernregnskap lagt ved: Nei
+Regnskapsregler
+Regler for små foretak benyttet: Ja
+Benyttet ved utarbeidelsen av
+årsregnskapet til selskapet: Regnskapslovens alminnelige regler
+Årsregnskapet fastsatt av kompetent organ
+Bekreftet av representant for selskapet: Eric Dizerens
+Dato for fastsettelse av årsregnskapet: 07.05.2024
+Revisjon
+Selskapet har besluttet at årsregnskapet
+ikke skal revideres: Ja
+Grunnlag for avgivelse
+År 2023: Årsregnskap er elektronisk innlevert.
+År 2022: Tall er hentet fra elektronisk innlevert årsregnskap fra 2023.
+Det er ikke krav til at årsregnskapet m.v. som sendes til Regnskapsregisteret
+er undertegnet. Kontrollen på at dette er utført ligger hos revisor/enhetens
+øverste organ. Sikkerheten ivaretas ved at innsender har rolle/rettighet
+for innsending av årsregnskapet via Altinn, og ved at det bekreftes at
+årsregnskapet er fastsatt av kompetent organ.
+Brønnøysundregistrene, 03.06.2024
+Postadresse: Postboks 900, 8910 Brønnøysund
+Telefon: 75 00 75 00
+E-post: firmapostØbrreg.no Internett: www.brreg.no
+Organisasjonsnummer: 974 760 673
+
+===== page 2 of 22 =====
+Organisasjonsnr: 928 772 896
+
+ALBATRELL HOLDING AS
+
+RESULTATREGNSKAP
+
+Beløp i: NOK Note 2023 2022
+
+RESULTATREGNSKAP
+
+Inntekter
+
+Salgsinntekt 0 0
+
+Annen driftsinntekt (0) (0)
+
+Sum inntekter [0] [0]
+
+Kostnader
+
+Varekostnad [0] [0]
+
+Lønnskostnad [0] (0)
+
+Avskrivning på varige
+
+driftsmidler og
+
+immaterielle eiendeler (0) (0)
+
+Nedskrivning av varige
+
+driftsmidler og
+
+immaterielle eiendeler (0) (0)
+
+Annen driftskostnad 250 (0)
+
+Sum kostnader 250 [0]
+
+Driftsresultat -250 [0]
+
+Finansinntekter og
+
+finanskostnader
+
+Inntekt på investering i
+
+datterselskap og
+
+tilknyttet selskap (0) (0)
+
+Inntekt på andre
+
+investeringer (0) (0)
+
+Renteinntekt fra foretak
+
+i samme konsern (0) (0)
+
+Annen renteinntekt 8 (0)
+
+Annen finansinntekt (0) (0)
+
+Verdiøkning andre
+
+finansielle instrumenter
+
+vurdert til virkelig verdi (0) (0)
+
+Sum finansinntekter 8 [0]
+
+Verdireduksjon andre
+
+finansielle instrumenter
+
+vurdert til virkelig verdi (0) (0)
+
+Nedskrivning av
+
+finansielle eiendeler (0) (0)
+
+Rentekostnad til foretak
+
+i samme konsern (0) (0)
+
+Annen rentekostnad [0] (0)
+
+Annen finanskostnad [0] 5 567
+
+Sum finanskostnader [0] 5 567
+
+Netto finans 8 -5 567
+Utskriftsdato 03.06.2024 Organisasjonsnr 928 772 896 Side 1 av 5
+
+===== page 3 of 22 =====
+Resultat før skattekostnad -242 -5 567
+Skattekostnad (0) [0]
+Årsresultat -242 -5 567
+Overføringer og
+disponeringer
+Overføring til/fra fond 0 0
+Ordinært utbytte (0) 0)
+Tilleggsutbytte 0 0
+Ekstraordinært utbytte (0) (0)
+Konsernbidrag 0 0
+Avgitt konsernbidrag (0) (0)
+Fondsemisjon (0) (0)
+Udekket tap [0] [0]
+Overføringer til/fra
+annen egenkapital -242 -5 567
+Sum overføringer og
+disponeringer -242 -5 567
+Utskriftsdato 03.06.2024 Organisasjonsnr 928 772 896 Side 2 av 5
+
+===== page 4 of 22 =====
+Organisasjonsnr: 928 772 896
+
+ALBATRELL HOLDING AS
+
+BALANSE
+
+Beløp i: NOK Note 2023 2022
+
+BALANSE - EIENDELER
+
+Anleggsmidler
+
+Immaterielle eiendeler
+
+Utvikling (0) (0)
+
+Konsesjoner, patenter,
+
+lisenser, varemerker og
+
+lignende rettigheter (0) (0)
+
+Utsatt skattefordel [0] [0]
+
+Goodwill 0 0
+
+Sum immaterielle eiendeler [0] [0]
+
+Varige driftsmidler
+
+Tomter, bygninger og
+
+annen fast eiendom 0 0
+
+Maskiner og anlegg (0) (0)
+
+Driftsløsøre, inventar,
+
+verktøy, kontormaskiner
+
+og lignende (0) (0)
+
+Sum varige driftsmidler [0] [0]
+
+Finansielle anleggsmidler
+
+Investering i datterselskap 30 000 30 000
+
+Investering i annet
+
+foretak i samme konsern (0) [0]
+
+Lån til foretak i samme
+
+konsern 0) [0]
+
+Investeringer i
+
+tilknyttet selskap (0) (0)
+
+Lån til tilknyttet
+
+selskap og felles
+
+kontrollert virksomhet 0 0
+
+Investeringer i aksjer og
+
+andeler 216 489 (0)
+
+Obligasjoner (0) (0)
+
+Andre fordringer (0) (0)
+
+Sum finansielle
+
+anleggsmidler 246 489 30 000
+
+Sum anleggsmidler 246 489 30 000
+
+Omløpsmidler
+
+Varer
+
+Varer 0 0
+
+Sum varer 0] [0]
+
+Fordringer
+
+Kundefordringer (0) (0)
+
+Andre fordringer (0) (0)
+
+Konsernfordringer 0) [0]
+Utskriftsdato 03.06.2024 Organisasjonsnr 928 772 896 Side 3 av 5
+
+===== page 5 of 22 =====
+Krav på innbetaling av
+selskapskapital (0) (0)
+Sum fordringer [0] [0]
+Investeringer
+Aksjer og andeler i
+foretak i samme konsern 0) [0]
+Markedsbaserte aksjer (0) [0]
+Markedsbaserte obligasjoner (0) 0)
+Andre markedsbaserte
+finansielle instrumenter 0 0
+Andre finansielle
+instrumenter 0 0
+Sum investeringer [0] [0]
+Bankinnskudd, kontanter
+og lignende
+Bankinnskudd, kontanter
+og lignende 5 702 4 433
+Sum bankinnskudd,
+kontanter og lignende 5 702 4 433
+Sum omløpsmidler 5 702 4 433
+SUM EIENDELER 252 191 34 433
+BALANSE - EGENKAPITAL OG
+GJELD
+Egenkapital
+Innskutt egenkapital
+Selskapskapital 40 000 40 000
+Beholdning av egne aksjer (0) (0)
+Overkurs 0) [0]
+Ikke registrert
+kapitalforhøyelse (0) (0)
+Annen innskutt egenkapital 0 0
+Sum innskutt egenkapital 40 000 40 000
+Opptjent egenkapital
+Fond (0) (0)
+Avsatt utbytte [0] [0]
+Annen egenkapital -5 809 -5 567
+Udekket tap (0) (0)
+Sum opptjent egenkapital -5 809 -5 567
+Sum egenkapital 34 191 34 433
+Gjeld
+Langsiktig gjeld
+Pensjonsforpliktelser (0) (0)
+Utsatt skatt (0) [0]
+Andre avsetninger for
+forpliktelser (0) (0)
+Sum avsetninger for
+forpliktelser 0] [0]
+Annen langsiktig gjeld
+
+Utskriftsdato 03.06.2024 Organisasjonsnr 928 772 896 Side 4 av 5
+
+===== page 6 of 22 =====
+Konvertible lån 0) 0
+Obligasjonslån 0 0
+Gjeld til
+kredittinstitusjoner (0) (0)
+Langsiktig konserngjeld 218 000 (0)
+Ansvarlig lånekapital 0 0
+Øvrig langsiktig gjeld (0) (0)
+Sum annen langsiktig gjeld 218 000 [0]
+Sum langsiktig gjeld 218 000 [0]
+Kortsiktig gjeld
+Konvertible lån 0 0
+Sertifikatlån 0 0
+Gjeld til
+kredittinstitusjoner (0) (0)
+Leverandørgjeld (0) (0)
+Betalbar skatt [0] [0]
+Skyldige offentlige
+avgifter (0) (0)
+Utbytte 0 0
+Kortsiktig konserngjeld (0) (0)
+Annen kortsiktig gjeld 0 0
+Sum kortsiktig gjeld [0] [0]
+Sum gjeld 218 000 fo)
+SUM EGENKAPITAL OG GJELD 252 191 34 433
+Utskriftsdato 03.06.2024 Organisasjonsnr 928 772 896 Side 5 av 5
+
+===== page 7 of 22 =====
+Organisasjonsnr: 928 772 896
+
+ALBATRELL HOLDING AS
+
+NOTEOPPLYSNINGER - SELSKAP - alle poster oppgitt i hele tall
+Note
+
+1
+
+Regnskapsprinsipper
+
+«div class="trix-content"> «div>Årsregnskapet er satt opp i samsvar med
+regnskapsloven og NRS 8 - God regnskapsskikk for små
+
+foretak.<br>&nbsp; <br><strong>Valuta</strong><br> Pengeposter i utenlandsk
+valuta vurderes iht kursen ved regnskapsårets slutt.<br>
+<br><strong>Driftsinntekter</strong><br> Inntektsføring ved salg av varer
+skjer på leveringstidspunktet. Tjenester inntektsføres etter hvert som de
+leveres.<br> «br> «strong>Skatt</strong><br> Skattekostnaden i
+resultatregnskapet omfatter både periodens betalbare skatt og endring i
+utsatt skatt. Utsatt skatt er beregnet med 22% på grunnlag av de
+midlertidige forskjeller som eksisterer mellom regnskapsmessige og
+skattemessige verdier, samt ligningsmessig underskudd til fremføring ved
+utgangen av regnskapsåret. Skatteøkende og skattereduserende midlertidige
+forskjeller som reverserer eller kan reverseres i samme periode er utlignet
+og nettoført.<br> <br> <«strong>Klassifisering og vurdering av
+balanseposter</strong><br> Anleggsmidler omfatter eiendeler bestemt til
+varig eie og bruk. Anleggsmidler er vurdert til anskaffelseskost. Varige
+driftsmidler balanseføres og avskrives over driftsmidlets økonomiske
+levetid. Avskrivningsperioden for fast eiendom anskaffet etter 2009 er
+dekomponert i en del som gjelder råbygget og en del som gjelder faste
+tekniske installasjoner. Varige driftsmidler nedskrives til gjenvinnbart
+beløp ved verdifall som forventes ikke å være forbigående. Gjenvinnbart
+beløp er det høyeste av netto salgsverdi og verdi i bruk. Verdi i bruker
+nåverdi av fremtidige kontantstrømmer knyttet til eiendelen. Nedskrivingen
+reverseres når grunnlaget for nedskrivingen ikke lenger er til stede.<br>
+<br> Omløpsmidler og kortsiktig gjeld omfatter normalt poster som forfaller
+til betaling innen ett år etter balansedagen, samt poster som knytter seg
+til varekretsløpet. Omløpsmidler vurderes til laveste verdi av
+anskaffelseskost og antatt virkelig verdi.<br> «br> «strong>Aksjer i
+datterselskap</strong><br> Investeringer i datterselskap er vurdert etter
+kostmetoden ettersom konsernet samlet ikke overstiger grensen for små
+foretak.<br> «br> «strong>Varer</strong><br> Varer er vurdert til det
+laveste av anskaffelseskost og netto salgsverdi.<br> «br>
+<«strong>Fordringer</strong><br> Kundefordringer og andre fordringer
+oppføres til pålydende etter fradrag for avsetning til forventet tap.
+Avsetning til tap gjøres på grunnlag av en individuell vurdering av de
+enkelte fordringene.<br> <br> «strong>Pensjonsforpliktelser</strong><br>
+Pensjonsforpliktelser finansiert over driften er beregnet og balanseført
+under avsetning for forpliktelser. Pensjonsordninger finansiert via sikrede
+ordninger er ikke balanseført. Pensjonspremien anses i disse tilfeller som
+pensjonskostnad og klassifiseres sammen med lønnskostnader.<br> <br>
+«strong>Garanti</strong><br> Det er avsatt til forventede garantikostnader.
+Garantiavsetningen er i balansen oppført under annen kortsiktig gjeld.</div>
+«/div>
+
+Note
+
+Er det usikkerhet om fortsatt drift?: Nei
+
+===== page 8 of 22 =====
+Note
+
+2
+
+Antall årsverk i regnskapsåret
+
+0.00
+Sum Beløp
+
+Balanseført verdi 31.12. Varige driftsmidler Immaterielle eiend.
+
+Konsernregns kap
+
+Morselskapet sitt navn
+
+Forretningskontor for morselskapet
+
+Begrunnelse for at datterselskap er utelatt fra konsolideringen
+Samlet beløp - tilknyttet selskap Årets Fjorårets
+Samlet beløp - foretak i samme konsern Årets Fjorårets
+Samlet beløp - foretak i samme konsern Årets Fjorårets
+Samlet beløp - felles kontrollert virksomhet Årets Fjorårets
+Pantstillelse Beløp
+Beholdning av eqne aksjer Antall Pålydende Andel av aksjek.
+
+===== page 9 of 22 =====
+Albatrell Holding AS
+
+Organisasjonsnummer: 928772896
+
+Resultatregnskap
+Note 2023 2022
+
+Driftskostnader
+
+Annen driftskostnad 250 0
+Sum kostnader 250 0
+Driftsresultat -250 0
+Finansinntekter
+
+Annen renteinntekt 8 0]
+Sum finansinntekter 8 0
+Finansutgifter
+
+Annen finanskostnad 0 5567
+Sum finanskostnader 0 5567
+Netto finans 8 -5 567
+Resultat før skattekostnad -242 -5 567
+Årsresultat -242 -5 567
+
+===== page 10 of 22 =====
+Balanse
+
+Note 2023 2022
+Finansielle anleggsmidler
+Investering i datterselskap 30 000 30 000
+Investeringer i aksjer og andeler 216 489 0]
+Sum finansielle anleggsmidler 246 489 30 000
+Sum anleggsmidler 246 489 30 000
+Omløpsmidler
+Bankinnskudd
+Bankinnskudd, kontanter og lignende 5702 4433
+Sum bankinnskudd, kontanter og lignende 5702 4433
+Sum omløpsmidler 5702 4433
+Sum eiendeler 252 191 34 433
+
+===== page 11 of 22 =====
+Innskutt egenkapital
+
+Selskapskapital 40 000 40 000
+Sum innskutt egenkapital 40 000 40 000
+Opptjent egenkapital
+
+Annen Egenkapital -5 809 -5 567
+Sum opptjent egenkapital -5 809 -5 567
+Sum egenkapital 34 191 34 433
+Langsiktig gjeld
+
+Langsiktig konserngjeld 218 000 0)
+Sum annen langsiktig gjeld 218 000 1)
+Sum langsiktig gjeld 218 000 0
+Sum gjeld 218 000 0
+Sum egenkapital og gjeld 252 191 34.433
+
+===== page 12 of 22 =====
+07.05.2024
+Styret i Albatrell Holding AS
+1 C a PE
+Eric Dizerens
+styreleder/daglig leder
+
+===== page 13 of 22 =====
+Noter
+
+===== page 14 of 22 =====
+Note: 1- Regnskapsprinsipper ==
+Årsregnskapet er satt opp i samsvar med regnskapsloven og NRS 8 - God regnskapsskikk for små foretak.
+Valuta
+
+Pengeposter i utenlandsk valuta vurderes iht kursen ved regnskapsårets slutt.
+
+Driftsinntekter
+
+Inntektsføring ved salg av varer skjer på leveringstidspunktet. Tjenester inntektsføres etter hvert som de
+leveres.
+
+Skatt
+
+Skattekostnaden i resultatregnskapet omfatter både periodens betalbare skatt og endring i utsatt skatt.
+Utsatt skatt er beregnet med 22% på grunnlag av de midlertidige forskjeller som eksisterer mellom
+regnskapsmessige og skattemessige verdier, samt ligningsmessig underskudd til fremføring ved
+utgangen av regnskapsåret. Skatteøkende og skattereduserende midlertidige forskjeller som reverserer
+eller kan reverseres i samme periode er utlignet og nettoført.
+
+Klassifisering og vurdering av balanseposter
+
+Anleggsmidler omfatter eiendeler bestemt til varig eie og bruk. Anleggsmidler er vurdert til
+anskaffelseskost. Varige driftsmidler balanseføres og avskrives over driftsmidlets økonomiske levetid.
+Avskrivningsperioden for fast eiendom anskaffet etter 2009 er dekomponert i en del som gjelder
+råbygget og en del som gjelder faste tekniske installasjoner. Varige driftsmidler nedskrives til
+gjenvinnbart beløp ved verdifall som forventes ikke å være forbigående. Gjenvinnbart beløp er det
+høyeste av netto salgsverdi og verdi i bruk. Verdi i bruker nåverdi av fremtidige kontantstrømmer knyttet
+til eiendelen. Nedskrivingen reverseres når grunnlaget for nedskrivingen ikke lenger er til stede.
+Omløpsmidler og kortsiktig gjeld omfatter normalt poster som forfaller til betaling innen ett år etter
+balansedagen, samt poster som knytter seg til varekretsløpet. Omløpsmidler vurderes til laveste verdi av
+anskaffelseskost og antatt virkelig verdi.
+
+Aksjer i datterselskap
+
+Investeringer i datterselskap er vurdert etter kostmetoden ettersom konsernet samlet ikke overstiger
+grensen for små foretak.
+
+Varer
+
+Varer er vurdert til det laveste av anskaffelseskost og netto salgsverdi.
+
+Fordringer
+
+Kundefordringer og andre fordringer oppføres til pålydende etter fradrag for avsetning til forventet tap.
+Avsetning til tap gjøres på grunnlag av en individuell vurdering av de enkelte fordringene.
+Pensjonsforpliktelser
+
+Pensjonsforpliktelser finansiert over driften er beregnet og balanseført under avsetning for forpliktelser.
+Pensjonsordninger finansiert via sikrede ordninger er ikke balanseført. Pensjonspremien anses i disse
+tilfeller som pensjonskostnad og klassifiseres sammen med lønnskostnader.
+
+Garanti
+
+Det er avsatt til forventede garantikostnader. Garantiavsetningen er i balansen oppført under annen
+kortsiktig gjeld.
+
+===== page 15 of 22 =====
+Note: 2 - Antall årsverk. —————————————————————————
+Antall årsverk 0
+
+Note: 3 - Lån og sikkerhetsstillelse til medlemmer av styrende
+organer
+
+Det er ikke gitt lån eller stilt sikkerhet for ledende personer.
+
+===== page 16 of 22 =====
+Albatrell Holding AS
+
+Organisasjonsnummer: 928772896
+
+Resultatregnskap
+Note 2023 2022
+
+Driftskostnader
+
+Annen driftskostnad 250 0
+Sum kostnader 250 0
+Driftsresultat -250 0
+Finansinntekter
+
+Annen renteinntekt 8 0]
+Sum finansinntekter 8 0
+Finansutgifter
+
+Annen finanskostnad 0 5567
+Sum finanskostnader 0 5567
+Netto finans 8 -5 567
+Resultat før skattekostnad -242 -5 567
+Årsresultat -242 -5 567
+
+===== page 17 of 22 =====
+Balanse
+
+Note 2023 2022
+Finansielle anleggsmidler
+Investering i datterselskap 30 000 30 000
+Investeringer i aksjer og andeler 216 489 0]
+Sum finansielle anleggsmidler 246 489 30 000
+Sum anleggsmidler 246 489 30 000
+Omløpsmidler
+Bankinnskudd
+Bankinnskudd, kontanter og lignende 5702 4433
+Sum bankinnskudd, kontanter og lignende 5702 4433
+Sum omløpsmidler 5702 4433
+Sum eiendeler 252 191 34 433
+
+===== page 18 of 22 =====
+Innskutt egenkapital
+
+Selskapskapital 40 000 40 000
+Sum innskutt egenkapital 40 000 40 000
+Opptjent egenkapital
+
+Annen Egenkapital -5 809 -5 567
+Sum opptjent egenkapital -5 809 -5 567
+Sum egenkapital 34 191 34 433
+Langsiktig gjeld
+
+Langsiktig konserngjeld 218 000 0)
+Sum annen langsiktig gjeld 218 000 1)
+Sum langsiktig gjeld 218 000 0
+Sum gjeld 218 000 0
+Sum egenkapital og gjeld 252 191 34.433
+
+===== page 19 of 22 =====
+07.05.2024
+Styret i Albatrell Holding AS
+Eric Dizerens
+styreleder/daglig leder
+
+===== page 20 of 22 =====
+Noter
+
+===== page 21 of 22 =====
+Note: 1- Regnskapsprinsipper ==
+Årsregnskapet er satt opp i samsvar med regnskapsloven og NRS 8 - God regnskapsskikk for små foretak.
+Valuta
+
+Pengeposter i utenlandsk valuta vurderes iht kursen ved regnskapsårets slutt.
+
+Driftsinntekter
+
+Inntektsføring ved salg av varer skjer på leveringstidspunktet. Tjenester inntektsføres etter hvert som de
+leveres.
+
+Skatt
+
+Skattekostnaden i resultatregnskapet omfatter både periodens betalbare skatt og endring i utsatt skatt.
+Utsatt skatt er beregnet med 22% på grunnlag av de midlertidige forskjeller som eksisterer mellom
+regnskapsmessige og skattemessige verdier, samt ligningsmessig underskudd til fremføring ved
+utgangen av regnskapsåret. Skatteøkende og skattereduserende midlertidige forskjeller som reverserer
+eller kan reverseres i samme periode er utlignet og nettoført.
+
+Klassifisering og vurdering av balanseposter
+
+Anleggsmidler omfatter eiendeler bestemt til varig eie og bruk. Anleggsmidler er vurdert til
+anskaffelseskost. Varige driftsmidler balanseføres og avskrives over driftsmidlets økonomiske levetid.
+Avskrivningsperioden for fast eiendom anskaffet etter 2009 er dekomponert i en del som gjelder
+råbygget og en del som gjelder faste tekniske installasjoner. Varige driftsmidler nedskrives til
+gjenvinnbart beløp ved verdifall som forventes ikke å være forbigående. Gjenvinnbart beløp er det
+høyeste av netto salgsverdi og verdi i bruk. Verdi i bruker nåverdi av fremtidige kontantstrømmer knyttet
+til eiendelen. Nedskrivingen reverseres når grunnlaget for nedskrivingen ikke lenger er til stede.
+Omløpsmidler og kortsiktig gjeld omfatter normalt poster som forfaller til betaling innen ett år etter
+balansedagen, samt poster som knytter seg til varekretsløpet. Omløpsmidler vurderes til laveste verdi av
+anskaffelseskost og antatt virkelig verdi.
+
+Aksjer i datterselskap
+
+Investeringer i datterselskap er vurdert etter kostmetoden ettersom konsernet samlet ikke overstiger
+grensen for små foretak.
+
+Varer
+
+Varer er vurdert til det laveste av anskaffelseskost og netto salgsverdi.
+
+Fordringer
+
+Kundefordringer og andre fordringer oppføres til pålydende etter fradrag for avsetning til forventet tap.
+Avsetning til tap gjøres på grunnlag av en individuell vurdering av de enkelte fordringene.
+Pensjonsforpliktelser
+
+Pensjonsforpliktelser finansiert over driften er beregnet og balanseført under avsetning for forpliktelser.
+Pensjonsordninger finansiert via sikrede ordninger er ikke balanseført. Pensjonspremien anses i disse
+tilfeller som pensjonskostnad og klassifiseres sammen med lønnskostnader.
+
+Garanti
+
+Det er avsatt til forventede garantikostnader. Garantiavsetningen er i balansen oppført under annen
+kortsiktig gjeld.
+
+===== page 22 of 22 =====
+Note: 2 - Antall årsverk. —————————————————————————
+Antall årsverk 0
+
+Note: 3 - Lån og sikkerhetsstillelse til medlemmer av styrende
+organer
+
+Det er ikke gitt lån eller stilt sikkerhet for ledende personer.

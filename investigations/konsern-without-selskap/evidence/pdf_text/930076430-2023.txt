@@ -1,0 +1,1217 @@
+===== page 1 of 31 =====
+==
+—= "
+== Brønnøysundregistrene
+ÅRSREGNSKAP FOR REGNSKAPSÅRET 2023 - GENERELL INFORMASJON
+Journalnummer: 2024 746523
+Enheten
+Organisasjonsnummer: 930 076 430
+Organisasjonsform: Aksjeselskap
+Foretaksnavn: SMART INNOVATION HOLDING AS
+Forretningsadresse: Håkon Melbergs vei 16
+1783 HALDEN
+Regnskapsår
+Årsregnskapets periode: 01.09.2022 - 31.12.2023
+Konsern
+Morselskap i konsern: Ja
+Konsernregnskap lagt ved: Nei
+Regnskapsregler
+Regler for små foretak benyttet: Ja
+Benyttet ved utarbeidelsen av
+årsregnskapet til selskapet: Regnskapslovens alminnelige regler
+Årsregnskapet fastsatt av kompetent organ
+Bekreftet av representant for selskapet: Stian Aasberg Johansen
+Dato for fastsettelse av årsregnskapet: 30.06.2024
+Grunnlag for avgivelse
+Ar 2023: Årsregnskap er elektronisk innlevert.
+År 2022: Tall er hentet fra elektronisk innlevert årsregnskap fra 2023.
+Det er ikke krav til at årsregnskapet m.v. som sendes til Regnskapsregisteret
+er undertegnet. Kontrollen på at dette er utført ligger hos revisor/enhetens
+øverste organ. Sikkerheten ivaretas ved at innsender har rolle/rettighet
+for innsending av årsregnskapet via Altinn, og ved at det bekreftes at
+årsregnskapet er fastsatt av kompetent organ.
+Brønnøysundregistrene, 16.09.2024
+Brønnøysundregistrene
+Postadresse: Postboks 900, 8910 Brønnøysund
+Telefon: 75 00 75 00
+E-post: firmapostØbrreg.no Internett: www.brreg.no
+Organisasjonsnummer: 974 760 673
+
+===== page 2 of 31 =====
+Organisasjonsnr: 930 076 430
+SMART INNOVATION HOLDING AS
+RESULTATREGNSKAP
+Beløp i: NOK Note 2023 2022
+RESULTATREGNSKAP
+Kostnader
+Annen driftskostnad 2 3 544 307
+Sum kostnader 3 544 307
+Driftsresultat -3 544 307 [0]
+Rentekostnad til foretak
+i samme konsern 57 990
+Sum finanskostnader 57 990
+Netto finans -57 990
+Ordinært resultat før
+skattekostnad -3 602 297 [0]
+Ordinært resultat etter
+skattekostnad -3 602 297 [0]
+Årsresultat -3 602 297 0
+Overføringer og
+disponeringer
+Udekket tap 3 -3 602 297
+Sum overføringer og
+disponeringer -3 602 297
+Utskriftsdato 16.09.2024 Organisasjonsnr 930 076 430 Side 1 av 3
+
+===== page 3 of 31 =====
+Organisasjonsnr: 930 076 430
+
+SMART INNOVATION HOLDING AS
+
+BALANSE
+
+Beløp i: NOK Note 2023 2022
+
+BALANSE - EIENDELER
+
+Anleggsmidler
+
+Immaterielle eiendeler
+
+Finansielle anleggsmidler
+
+Investering i datterselskap 4 7 793 600
+
+Lån til foretak i samme
+
+konsern 5 1 200 000
+
+Sum finansielle
+
+anleggsmidler 8 993 600
+
+Sum anleggsmidler 8 993 600 [0]
+
+Omløpsmidler
+
+Varer
+
+Fordringer
+
+Andre fordringer 11 183
+
+Krav på innbetaling av
+
+selskapskapital 3 11 298 452
+
+Sum fordringer 11 309 635 [0]
+
+Bankinnskudd, kontanter
+
+og lignende
+
+Sum bankinnskudd,
+
+kontanter og lignende 3 348 729
+
+Sum omløpsmidler 14 658 364 [0]
+
+SUM EIENDELER 23 651 964 [0]
+
+BALANSE - EGENKAPITAL OG
+
+GJELD
+
+Egenkapital
+
+Innskutt egenkapital
+
+Aksjekapital 3, 6 1 337 326
+
+Overkurs 3 13 764 270
+
+Annen innskutt egenkapital 3 11 292 882
+
+Sum innskutt egenkapital 26 394 478
+
+Opptjent egenkapital
+
+Annen egenkapital 3 -3 602 297
+
+Sum opptjent egenkapital -3 602 297
+
+Sum egenkapital 22 792 181 [0]
+
+Sum langsiktig gjeld [0] [0]
+Utskriftsdato 16.09.2024 Organisasjonsnr 930 076 430 Side 2 av 3
+
+===== page 4 of 31 =====
+Kortsiktig gjeld
+
+Leverandørgjeld 4 213
+
+Annen kortsiktig gjeld 5 855 570
+
+Sum kortsiktig gjeld 859 783
+
+Sum gjeld 859 783 [0]
+
+SUM EGENKAPITAL OG GJELD 23 651 964 [0]
+Utskriftsdato 16.09.2024 Organisasjonsnr 930 076 430 Side 3 av 3
+
+===== page 5 of 31 =====
+Organisasjonsnr: 930 076 430
+SMART INNOVATION HOLDING AS
+NOTEOPPLYSNINGER - SELSKAP - alle poster oppgitt i hele tall
+Note
+6
+Antall aksjer og aksjeeiere
+Aksjeklasse Ant. aksjer Pålydende Bokført verdi
+A-aksjer 1264000.00 1.00 1264000.00
+B-aksjer 73326.00 1.00 73326.00
+Aksjeeiere - fritekst Antall Eierandel Aksjeklasse
+Ecapital AS 373000.00 27.89% A-aksjer
+Energy & ICT AS 369426.00 27.625% A-aksjer
+B-aksjer
+Siva - Selskapet For 340280.00 25.44% A-aksjer
+Industrivekst SF B-aksjer
+Østfold Energi AS 113331.00 8.47% A-aksjer
+B-aksjer
+Halden Kommune 48426.00 3.62% A-aksjer
+B-aksjer
+Berg Sparebank 26853.00 2.01% A-aksjer
+B-aksjer
+Sparebank 1 Østfold 15000.00 1.12% A-aksjer
+Akershus
+Halden Næringsutvikling 10000.00 0.75% A-aksjer
+Ringstad Invest AS 10000.00 0.75% A-aksjer
+Institutt For 10000.00 0.75% A-aksjer
+Energiteknikk
+Høgskolen i Østfold 5000.00 0.37% A-aksjer
+Tor Harald Korpås 5000.00 0.37% A-aksjer
+Kjeller Innovasjon AS 5000.00 0.37% A-aksjer
+Breiangen AS 5000.00 0.37% A-aksjer
+Maisol AS 589.00 0.04% B-aksjer
+Schinvest AS 421.00 0.03% B-aksjer
+Sum Sum antall Sum eierandel
+1337326.00 100.00%
+Note
+2
+Lønn og ytelser
+Selskapet har ikke hatt noen årsverk sysselsatt i regnskapsåret.
+Note
+Antall årsverk i regnskapsåret
+
+===== page 6 of 31 =====
+Virksomheten har hatt følgende antall årsverk:
+0.00
+Note
+4
+Konsern, tilknyttet selskap og datterselskap
+Tilknyttet selskap/datterselskap
+Navn og adresse Eierandel Stemmeandel Egenkapital Resultat
+Smart Innovation 100.00%
+Norway AS
+SINinvest AS 100.00%
+Fortress Fund 100.00%
+Management AS
+Virksomheten inngår i konsolideringen til morselskapets
+konsernregnsk.: Nei
+Datterselskap er utelatt fra konsolideringen: Nei
+Omløpsmidler Startdato Sluttdato Endrinq
+Skattemessiq fremf.undersk. Startdato Sluttdato Endrinq
+Kortsiktiq gjeld Startdato Sluttdato Endrinq
+
+===== page 7 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 1 - Regnskapsprinsipper
+Årsregnskapet er satt opp i samsvar med regnskapsloven og god regnskapsskikk for små foretak. Selskapet
+ble stiftet 01.09.2022 og første regnskapsår er 01.09.2022 til 31.12.2023.
+Datterselskap/tilknyttet selskap
+Datterselskapet og tilknyttede selskaper vurderes etter kostmetoden i selskapsregnskapet. Investeringen er
+vurdert til anskaffelseskost for aksjene med mindre nedskrivning har vært nødvendig. Det er foretatt
+nedskrivning til virkelig verdi når verdifall skyldes årsaker som ikke kan antas å være forbigående og det må
+anses nødvendig etter god regnskapsskikk. Nedskrivninger er reversert når grunnlaget for nedskrivning ikke
+lenger er til stede.
+Utbytte og andre utdelinger er inntektsført samme år som det er avsatt i datterselskapet. Overstiger utbytte
+andel av tilbakeholdt resultat etter kjøpet, representerer den overskytende del tilbakebetaling av investert
+kapital, og utdelingene er fratrukket investeringens verdi i balansen.
+Klassifisering og vurdering av balanseposter
+Omløpsmidler og kortsiktig gjeld omfatter poster som forfaller til betaling innen ett år etter balansedagen,
+samt poster som knytter seg til varekretsløpet. Øvrige poster er klassifisert som anleggsmiddel/langsiktig
+gjeld.
+Omløpsmidler vurderes til laveste av anskaffelseskost og virkelig verdi. Kortsiktig gjeld balanseføres til
+nominelt beløp på etableringstidspunktet.
+Anleggsmidler vurderes til anskaffelseskost, men nedskrives til virkelig verdi ved verdifall som ikke forventes
+å være forbigående. Anleggsmidler med begrenset økonomisk levetid avskrives planmessig. Langsiktig gjeld
+balanseføres til nominelt beløp på etableringstidspunktet.
+Valuta
+Pengeposter i utenlandsk valuta er vurdert til kursen ved regnskapsårets slutt.
+Skatter
+Skattekostnaden i resultatregnskapet omfatter både periodens betalbare skatt og endring i utsatt skatt.
+Utsatt skatt er beregnet med 22% på grunnlag av de midlertidige forskjeller som eksisterer mellom
+regnskapsmessige og skattemessige verdier, samt ligningsmessig underskudd til fremføring ved utgangen av
+regnskapsåret. Skatteøkende og skattereduserende midlertidige forskjeller som reverserer eller kan
+reversere i samme periode er utlignet og nettoført. Netto utsatt skattefordel balanseføres i den grad det er
+sannsynlig at denne kan bli nyttiggjort. Selskapet har videre filialer ihhv Danmark (22%) og Finland (20%).
+Note 2 - Årsverk
+Selskapet har ikke hatt noen årsverk sysselsatt i regnskapsåret.
+
+===== page 8 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 3 - Egenkapital
+Aksjekapital Overkurs Annen Annen Sum
+innskutt egenkapital
+egenkapital
+Stiftelse 30 000 0) -5 570 0) 24 430
+Nedsettelse av -30 000 0] 0] 0) -30 000
+aksjekapital
+Tingsinnskudd 1 264 000 5 136 000 0 0) 6 400 000
+Kontantinnskudd 73 326 8628 270 0) 0) 8701 596
+Ikke registrert 0) 0) 11 298 452 0) 11 298 452
+kapitalforhøyelse*
+Årsresultat 0] 0) 0 -3 602 297 -3 602 297
+Egenkapital 1 337 326 13 764 270 11 292 882 -3 602 297 22 792 181
+31.12.2023
+*Styret etter fullmakt fra generalforsamlingen vedtok den 25.10.2023 en kapitalforhøyelse rettet mot
+Ecapital AS. Kapitalforhøyelsen ble gjennomført som tingsinnskudd med aksjer i eSmart Systems AS og ble
+registrert i Brønnøysundregistrene den 27.02.2024.
+Note 4 - Datterselskap, tilknyttet selskap m v
+Eier- Bokført verdi
+Selskap andel pr. 31.12
+Smart Innovation Norway AS 100 % 6 400 000
+SINinvest AS 100 % 893 600
+Fortress Fund Management AS 100 % 500 000
+Sum 7 793 600
+Note 5 - Mellomværende med selskap i samme konsern
+Fordringer 2023
+Lån til foretak i samme konsern 1 200 000
+Gjeld 2023
+Annen kortsiktig gjeld 850 000
+
+===== page 9 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 6 - Aksjeeiere
+Aksjekapitalen består av:
+Antall Pålydende Balanseført
+A-aksjer 1 264 000 1 1 264 000
+B-aksjer 73 326 1 73 326
+Sum 1 337 326 1 337 326
+Oversikt over aksjonærene i selskapet pr. 31.12:23
+Eier-
+A-aksjer B-aksjer andel
+Ecapital AS 373 000 0) 27,89 %
+Energy & ICT AS 361 000 8426 27,62 %
+Siva - Selskapet For Industrivekst SF 315 000 25 280 25,44 %
+Østfold Energi AS 100 000 13 331 8,47 %
+Halden Kommune 40 000 8426 3,62 %
+Berg Sparebank 10 000 16 853 2,01 %
+Sparebank 1 Østfold Akershus 15 000 0) 1,12 %
+Halden Næringsutvikling 10 000 0) 0,75 %
+Ringstad Invest AS 10 000 0) 0,75 %
+Institutt For Energiteknikk 10 000 0) 0,75 %
+Høgskolen i Østfold 5000 0 0,37 %
+Tor Harald Korpås 5 000 0) 0,37 %
+Kjeller Innovasjon AS 5000 0) 0,37 %
+Breiangen AS 5000 0 0,37 %
+Maisol AS 0) 589 0,04 %
+Schinvest AS 0) 421 0,03 %
+Sum 1 264 000 73326 100,00 %
+
+===== page 10 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 7 - Skatt
+
+Beregning av årets skattegrunnlag: 2023
+
+Ordinært resultat før skattekostnad -3 602 297
+
+Årets skattegrunnlag -3 602 297
+
+Oversikt over midlertidige forskjeller 2023
+
+Akkumulert fremførbart underskudd før konsernbidrag -3 650 329
+
+Netto midlertidige forskjeller pr 31.12 -3 650 329
+
+Forskjeller som ikke inngår i utsatt skatt/-skattefordel -3 650 329
+
+Sum 0)
+Note 8 - Fortsatt drift
+Gjennom 2023 og 2024 har selskapet/konsernet gjennomført tiltak for å tilpasse kostnader med inntekter
+fra prosjekter. Med bakgrunn i dagens likviditetssituasjon, reduserte kostnadsbase samt prosjektbase
+bekreftes det at forutsetningen om fortsatt drift iht regnskapsloven $3-3a er tilstede.
+
+===== page 11 of 31 =====
+Arsrapport for 2023
+E Årsregnskap
+: - Resultatregnskap
+, - Balanse
+& - Noter
+:
+9
+
+===== page 12 of 31 =====
+Smart Innovation Holding AS
+Oo
+Arsrapport for 2023
+Z
+z
+Å
+E Årsregnskap
+8 - Resultatregnskap
+8 - Balanse
+g - Noter
+E
+$
+=
+Å
+v
+
+===== page 13 of 31 =====
+Smart Innovation Holding AS
+Resultatregnskap 01.09.22-31.12.23
+Note 2023
+Driftskostnader
+Annen driftskostnad 2 3 544 307
+Sum driftskostnader 3 544 307
+Driftsresultat -3 544 307
+Finansinntekter og finanskostnader
+Rentekostnad til foretak i samme konsern 57 990
+Annen finanskostnad 0
+Netto finansposter -57 990
+= Ordinært resultat før skattekostnad -3 602 297
+TT
+v
+&
+pe Årsresultat -3 602 297
+=
+[99]
+8 Overføringer og disponeringer
+p Udekket tap 3 -3 602 297
+2 Sum disponert -3 602 297
+o
+[00]
+Q
+KG
+E
+2
+pa
+>
+3
+S
+v
+a
+9)
+
+===== page 14 of 31 =====
+Smart Innovation Holding AS
+Balanse pr. 31. desember
+Note 2023
+Anleggsmidler
+Finansielle anleggsmidler
+Investeringer i datterselskap 4 7 793 600
+Lån til foretak i samme konsern 5 1 200 000
+Sum finansielle anleggsmidler 8 993 600
+Sum anleggsmidler 8 993 600
+Omløpsmidler
+— Fordringer
+= Andre fordringer 11 183
+Z Krav på innbetaling av selskapskapital 3 11 298 452
+uv
+& ——==
+VE Sum fordringer 11 309 635
+EG Bankinnskudd, kontanter og lignende 3 348 729
+$
+ip Sum omløpsmidler 14 658 364
+S
+TT
+pa
+om
+P Sum eiendeler 23 651 964
+G
+E
+3
+Å
+3
+3
+=
+T
+=
+)
+
+===== page 15 of 31 =====
+Smart Innovation Holding AS
+Balanse pr. 31. desember
+Note 2023
+Egenkapital
+Innskutt egenkapital
+Aksjekapital 3,6 1337 326
+Overkurs 3 13 764 270
+Annen innskutt egenkapital 3 11 292 882
+Sum innskutt egenkapital 26 394 478
+Opptjent egenkapital
+Annen egenkapital 3 -3 602 297
+Sum opptjent egenkapital -3 602 297
+T Sum egenkapital 22 792 181
+z
+& Gjeld
+2
+E Kortsiktig gjeld
+G Leverandørgjeld 4213
+8 Annen kortsiktig gjeld 5 855 570
+key Sum kortsiktig gjeld 859 783
+2
+R Sum gjeld 859 783
+Q
+KG
+v Sum egenkapital og gjeld 23 651 964
+3
+Å
+2 31. desember 2023
+5 Halden, 28. juni 2024
+D
+=
+KS) Knut Harry Helland Johansen Ole Andreas Schårer Kristi Cecilie Grønvold
+Bache
+Daglig leder/Styremedlem Styrets leder Styremedlem
+Lene Mostue Tina Lihaug Selbæk Eric Tomas Nordlander
+Styremedlem Styremedlem Styremedlem
+Eirik Gunnar Andreassen Inge Michael Bilet
+Styremedlem Styremedlem
+
+===== page 16 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 1 - Regnskapsprinsipper
+Årsregnskapet er satt opp i samsvar med regnskapsloven og god regnskapsskikk for små foretak. Selskapet
+ble stiftet 01.09.2022 og første regnskapsår er 01.09.2022 til 31.12.2023.
+Datterselskap/tilknyttet selskap
+Datterselskapet og tilknyttede selskaper vurderes etter kostmetoden i selskapsregnskapet. Investeringen er
+vurdert til anskaffelseskost for aksjene med mindre nedskrivning har vært nødvendig. Det er foretatt
+nedskrivning til virkelig verdi når verdifall skyldes årsaker som ikke kan antas å være forbigående og det må
+anses nødvendig etter god regnskapsskikk. Nedskrivninger er reversert når grunnlaget for nedskrivning ikke
+lenger er til stede.
+Utbytte og andre utdelinger er inntektsført samme år som det er avsatt i datterselskapet. Overstiger utbytte
+andel av tilbakeholdt resultat etter kjøpet, representerer den overskytende del tilbakebetaling av investert
+= kapital, og utdelingene er fratrukket investeringens verdi i balansen.
+Z
+T Klassifisering og vurdering av balanseposter
+2 Omløpsmidler og kortsiktig gjeld omfatter poster som forfaller til betaling innen ett år etter balansedagen,
+å samt poster som knytter seg til varekretsløpet. Øvrige poster er klassifisert som anleggsmiddel/langsiktig
+3 gjeld.
+[90]
+UD
+8 Omløpsmidler vurderes til laveste av anskaffelseskost og virkelig verdi. Kortsiktig gjeld balanseføres til
+åå nominelt beløp på etableringstidspunktet.
+TT
+op]
+9 Anleggsmidler vurderes til anskaffelseskost, men nedskrives til virkelig verdi ved verdifall som ikke forventes
+Q å være forbigående. Anleggsmidler med begrenset økonomisk levetid avskrives planmessig. Langsiktig gjeld
+EG balanseføres til nominelt beløp på etableringstidspunktet.
+v
+3 Valuta
+på Pengeposter i utenlandsk valuta er vurdert til kursen ved regnskapsårets slutt.
+$
+p= Skatter
+po Skattekostnaden i resultatregnskapet omfatter både periodens betalbare skatt og endring i utsatt skatt.
+B Utsatt skatt er beregnet med 22% på grunnlag av de midlertidige forskjeller som eksisterer mellom
+KS) regnskapsmessige og skattemessige verdier, samt ligningsmessig underskudd til fremføring ved utgangen av
+regnskapsåret. Skatteøkende og skattereduserende midlertidige forskjeller som reverserer eller kan
+reversere i samme periode er utlignet og nettoført. Netto utsatt skattefordel balanseføres i den grad det er
+sannsynlig at denne kan bli nyttiggjort. Selskapet har videre filialer ihhv Danmark (22%) og Finland (20%).
+Note 2 - Årsverk
+Selskapet har ikke hatt noen årsverk sysselsatt i regnskapsåret.
+
+===== page 17 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 3 - Egenkapital
+Aksjekapital Overkurs Annen Annen Sum
+innskutt egenkapital
+egenkapital
+Stiftelse 30 000 0 -5570 0 24 430
+Nedsettelse av -30 000 0) 0) 0) -30 000
+aksjekapital
+Tingsinnskudd 1 264 000 5 136 000 0 0 6 400 000
+Kontantinnskudd 73 326 8628 270 0 0 8 701 596
+Ikke registrert 0 0 11 298 452 0 11 298 452
+kapitalforhøyelse*
+Årsresultat 0) 0 0) -3 602 297 -3 602 297
+Egenkapital 1 337 326 13 764 270 11 292 882 -3 602 297 22792 181
+G 31.12.2023
+Ve ——QZÆ—————;<<—ÄCÄÄÄZÄZE—————K————V———ÄJFJFJFÆFÆFFFFÆFVÆÆFZFFJFFFFFFFFÆFÆJFÆJÆÆÄJJJFFFREZJJJJJÆPEJFFCCJJJJEJFFEFEFFEF—FÆÄZ—ÆÄJÆFÆÆÆFÆFFJÆÆJJJJÆÆFJ—J—
+TT
+= *Styret etter fullmakt fra generalforsamlingen vedtok den 25.10.2023 en kapitalforhøyelse rettet mot
+AB Ecapital AS. Kapitalforhøyelsen ble gjennomført som tingsinnskudd med aksjer i eSmart Systems AS og ble
+E registrert i Brønnøysundregistrene den 27.02.2024.
+Å
+&
+Note 4 - Datterselskap, tilknyttet selskap m v
+Å
+I Eier-  Bokført verdi
+& Selskap andel pr. 31.12
+Q Smart Innovation Norway AS 100 % 6 400 000
+NG SINinvest AS 100 % 893 600
+= Fortress Fund Management AS 100 % 500 000
+I Sum 7 793 600
+3
+>
+3
+=
+Å Note 5 - Mellomværende med selskap i samme konsern
+vw Fordringer 2023
+Lån til foretak i samme konsern 1 200 000
+Gjeld 2023
+Annen kortsiktig gjeld 850 000
+
+===== page 18 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 6 - Aksjeeiere
+Aksjekapitalen består av:
+Antall Pålydende Balanseført
+A-aksjer 1 264 000 1 1 264 000
+B-aksjer 73 326 1 73 326
+Sum 1 337 326 1 337 326
+Oversikt over aksjonærene i selskapet pr. 31.12:23
+Eier-
+A-aksjer B-aksjer andel
+Ecapital AS 373 000 0 27,89 %
+Energy & ICT AS 361 000 8426 27,62 %
+G Siva - Selskapet For Industrivekst SF 315 000 25 280 25,44 %
+z Østfold Energi AS 100 000 13 331 8,47 %
+E Halden Kommune 40 000 8426 3,62 %
+hø Berg Sparebank 10 000 16 853 2,01 %
+å Sparebank 1 Østfold Akershus 15 000 0 1,12 %
+z Halden Næringsutvikling 10 000 0) 0,75 %
+uw Ringstad Invest AS 10 000 0 0,75 %
+8 Institutt For Energiteknikk 10 000 0) 0,75 %
+å Høgskolen i Østfold 5 000 0 0,37 %
+I Tor Harald Korpås 5 000 0 0,37 %
+9 Kjeller Innovasjon AS 5 000 0) 0,37 %
+Q Breiangen AS 5000 0) 0,37 %
+Mi Maisol AS 0) 589 0,04 %
+3 Schinvest AS 0 421 0,03 %
+- Sum 1 264 000 73 326 100,00 %
+$
+E
+v
+S
+)
+
+===== page 19 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 7 - Skatt
+Beregning av årets skattegrunnlag: 2023
+Ordinært resultat før skattekostnad -3 602 297
+Årets skattegrunnlag -3 602 297
+Oversikt over midlertidige forskjeller 2023
+Akkumulert fremførbart underskudd før konsernbidrag -3 650 329
+Netto midlertidige forskjeller pr 31.12 -3 650 329
+Forskjeller som ikke inngår i utsatt skatt/-skattefordel -3 650 329
+Sum 0)
+=
+2 Note 8 - Fortsatt drift
+uv
+&
+Va Gjennom 2023 og 2024 har selskapet/konsernet gjennomført tiltak for å tilpasse kostnader med inntekter
+- fra prosjekter. Med bakgrunn i dagens likviditetssituasjon, reduserte kostnadsbase samt prosjektbase
+ge)
+fr; bekreftes det at forutsetningen om fortsatt drift iht regnskapsloven $3-3a er tilstede.
+$
+Tv
+S
+TT
+pa
+om
+[00]
+a
+KG
+2
+3
+Å
+3
+3
+=
+T
+=
+)
+
+===== page 20 of 31 =====
+=
+[ae]
+>,
+5
+T
+uv
+&
+OG
+2
+77)
+å
+fa
+=
+=
+A
+Mp]
+Ka)
+&
+rt
+v
+fog)
+fen)
+TS
+a
+[og]
+ag
+&
+N
+—
+la
+[40]
+ul
+v
+ri
+r
+å
+T
+F
+m
+fo
+TS
+r—-
+lt
+O
+keel
+lt
+v
+Q
+h—
+GS)
+
+===== page 21 of 31 =====
+=
+[ae]
+>,
+5
+T
+uv
+&
+OG
+2
+77)
+å
+fa
+=
+=
+A
+Mp]
+Ka)
+&
+rt
+v
+fog)
+fen)
+TS
+a
+[og]
+ag
+&
+N
+—
+la
+[40]
+ul
+v
+ri
+r
+å
+T
+F
+m
+fo
+TS
+r—-
+lt
+O
+keel
+lt
+v
+Q
+h—
+GS)
+
+===== page 22 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 1 - Regnskapsprinsipper
+Årsregnskapet er satt opp i samsvar med regnskapsloven og god regnskapsskikk for små foretak. Selskapet
+ble stiftet 01.09.2022 og første regnskapsår er 01.09.2022 til 31.12.2023.
+Datterselskap/tilknyttet selskap
+Datterselskapet og tilknyttede selskaper vurderes etter kostmetoden i selskapsregnskapet. Investeringen er
+vurdert til anskaffelseskost for aksjene med mindre nedskrivning har vært nødvendig. Det er foretatt
+nedskrivning til virkelig verdi når verdifall skyldes årsaker som ikke kan antas å være forbigående og det må
+anses nødvendig etter god regnskapsskikk. Nedskrivninger er reversert når grunnlaget for nedskrivning ikke
+lenger er til stede.
+Utbytte og andre utdelinger er inntektsført samme år som det er avsatt i datterselskapet. Overstiger utbytte
+andel av tilbakeholdt resultat etter kjøpet, representerer den overskytende del tilbakebetaling av investert
+= kapital, og utdelingene er fratrukket investeringens verdi i balansen.
+Z
+T Klassifisering og vurdering av balanseposter
+2 Omløpsmidler og kortsiktig gjeld omfatter poster som forfaller til betaling innen ett år etter balansedagen,
+å samt poster som knytter seg til varekretsløpet. Øvrige poster er klassifisert som anleggsmiddel/langsiktig
+3 gjeld.
+[90]
+UD
+8 Omløpsmidler vurderes til laveste av anskaffelseskost og virkelig verdi. Kortsiktig gjeld balanseføres til
+åå nominelt beløp på etableringstidspunktet.
+TT
+op]
+9 Anleggsmidler vurderes til anskaffelseskost, men nedskrives til virkelig verdi ved verdifall som ikke forventes
+Q å være forbigående. Anleggsmidler med begrenset økonomisk levetid avskrives planmessig. Langsiktig gjeld
+EG balanseføres til nominelt beløp på etableringstidspunktet.
+v
+3 Valuta
+på Pengeposter i utenlandsk valuta er vurdert til kursen ved regnskapsårets slutt.
+$
+p= Skatter
+po Skattekostnaden i resultatregnskapet omfatter både periodens betalbare skatt og endring i utsatt skatt.
+B Utsatt skatt er beregnet med 22% på grunnlag av de midlertidige forskjeller som eksisterer mellom
+KS) regnskapsmessige og skattemessige verdier, samt ligningsmessig underskudd til fremføring ved utgangen av
+regnskapsåret. Skatteøkende og skattereduserende midlertidige forskjeller som reverserer eller kan
+reversere i samme periode er utlignet og nettoført. Netto utsatt skattefordel balanseføres i den grad det er
+sannsynlig at denne kan bli nyttiggjort. Selskapet har videre filialer ihhv Danmark (22%) og Finland (20%).
+Note 2 - Årsverk
+Selskapet har ikke hatt noen årsverk sysselsatt i regnskapsåret.
+
+===== page 23 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 3 - Egenkapital
+Aksjekapital Overkurs Annen Annen Sum
+innskutt egenkapital
+egenkapital
+Stiftelse 30 000 0 -5570 0 24 430
+Nedsettelse av -30 000 0) 0) 0) -30 000
+aksjekapital
+Tingsinnskudd 1 264 000 5 136 000 0 0 6 400 000
+Kontantinnskudd 73 326 8628 270 0 0 8 701 596
+Ikke registrert 0 0 11 298 452 0 11 298 452
+kapitalforhøyelse*
+Årsresultat 0) 0 0) -3 602 297 -3 602 297
+Egenkapital 1 337 326 13 764 270 11 292 882 -3 602 297 22792 181
+G 31.12.2023
+Z ——F—F——æe——————————————Æ————Jjt ee ————————— ==
+TT
+= *Styret etter fullmakt fra generalforsamlingen vedtok den 25.10.2023 en kapitalforhøyelse rettet mot
+AB Ecapital AS. Kapitalforhøyelsen ble gjennomført som tingsinnskudd med aksjer i eSmart Systems AS og ble
+E registrert i Brønnøysundregistrene den 27.02.2024.
+Å
+5
+Note 4 - Datterselskap, tilknyttet selskap m v
+Å
+I Eier-  Bokført verdi
+& Selskap andel pr. 31.12
+Q Smart Innovation Norway AS 100 % 6 400 000
+NG SINinvest AS 100 % 893 600
+= Fortress Fund Management AS 100 % 500 000
+I Sum 7 793 600
+3
+3
+3
+=
+Å Note 5 - Mellomværende med selskap i samme konsern
+vw Fordringer 2023
+Lån til foretak i samme konsern 1 200 000
+Gjeld 2023
+Annen kortsiktig gjeld 850 000
+
+===== page 24 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 6 - Aksjeeiere
+Aksjekapitalen består av:
+Antall Pålydende Balanseført
+A-aksjer 1 264 000 1 1 264 000
+B-aksjer 73 326 1 73 326
+Sum 1 337 326 1 337 326
+Oversikt over aksjonærene i selskapet pr. 31.12:23
+Eier-
+A-aksjer B-aksjer andel
+Ecapital AS 373 000 0 27,89 %
+Energy & ICT AS 361 000 8426 27,62 %
+G Siva - Selskapet For Industrivekst SF 315 000 25 280 25,44 %
+z Østfold Energi AS 100 000 13 331 8,47 %
+E Halden Kommune 40 000 8426 3,62 %
+hø Berg Sparebank 10 000 16 853 2,01 %
+å Sparebank 1 Østfold Akershus 15 000 0 1,12 %
+z Halden Næringsutvikling 10 000 0) 0,75 %
+uw Ringstad Invest AS 10 000 0 0,75 %
+8 Institutt For Energiteknikk 10 000 0) 0,75 %
+å Høgskolen i Østfold 5 000 0 0,37 %
+I Tor Harald Korpås 5 000 0 0,37 %
+9 Kjeller Innovasjon AS 5 000 0) 0,37 %
+Q Breiangen AS 5000 0) 0,37 %
+Mi Maisol AS 0) 589 0,04 %
+3 Schinvest AS 0 421 0,03 %
+- Sum 1 264 000 73 326 100,00 %
+$
+E
+v
+S
+)
+
+===== page 25 of 31 =====
+Smart Innovation Holding AS
+Noter til regnskapet for 2023
+Note 7 - Skatt
+Beregning av årets skattegrunnlag: 2023
+Ordinært resultat før skattekostnad -3 602 297
+Årets skattegrunnlag -3 602 297
+Oversikt over midlertidige forskjeller 2023
+Akkumulert fremførbart underskudd før konsernbidrag -3 650 329
+Netto midlertidige forskjeller pr 31.12 -3 650 329
+Forskjeller som ikke inngår i utsatt skatt/-skattefordel -3 650 329
+Sum 0)
+=
+2 Note 8 - Fortsatt drift
+uv
+&
+Va Gjennom 2023 og 2024 har selskapet/konsernet gjennomført tiltak for å tilpasse kostnader med inntekter
+- fra prosjekter. Med bakgrunn i dagens likviditetssituasjon, reduserte kostnadsbase samt prosjektbase
+ge)
+fr; bekreftes det at forutsetningen om fortsatt drift iht regnskapsloven $3-3a er tilstede.
+$
+Tv
+S
+TT
+pa
+om
+[00]
+a
+KG
+2
+3
+Å
+3
+3
+=
+T
+=
+)
+
+===== page 26 of 31 =====
+V erification Status: Signed by all
+Title: Årsregnskap 2023 Smart Innovation Holding AS v2.pdf Created: 2024-06-28
+ID: effbf1d0-34d1-11ef-aff2-8332d93e1865
+Signatures
+Kristi G. Bache Eirik Andreassen
+Kristi.BacheØkristiania.no eirik.andreassenØØdigitalnorway.com
+Signed: 2024-06-28 07:17 Norwegian BankID 1972-03-23, Kristi CG — Signed: 2024-06-28 08:35 Norwegian BankID 1965-11-08,
+Bache Eirik Gunnar Andreassen
+Lene Mostue Knut H. Johansen
+ImØforskningsradet.no knut.h.johansenØsmartinnovationnorway.com
+Signed: 2024-06-28 11:43 Norwegian BankID 1970-02-09, Lene Mostue Signed: 2024-06-28 13:48 Norwegian BankID 1958-04-04,
+Knut Harry Helland Johansen
+Tina L. Selbæk Inge Bilet
+tina.lihaug.selbakØsiva.no inge.biletØsmartinnovationnorway.com
+Signed: 2024-06-28 13:49 Norwegian BankID 1973-11-05, Tina Lihaug Signed: 2024-06-28 13:55 Norwegian BankID 1975-08-05,
+Selbæk Inge Michael Bilet
+Ole Andreas Schårer Tomas Nordlander
+ole.andreas.søØgmail.com tnøØnilu.no
+Signed: 2024-06-28 14:24 Norwegian BankID 1950-03-21, Ole Andreas Signed: 2024-06-28 14:25 Norwegian BankID 1971-01-20,
+Schårer Eric Tomas Nordlander
+Files
+File name Size Checksum
+Årsregnskap 2023 Smart Innovation Holding 136.6 kB 1cb5 6f52 254d 1b60 1863 7d1a dofb ba4fd
+AS v2.pdf 2354 a51b faf2 986b bide 7b5e 6add 2751
+Events
+Date Time Event
+2024-06-28 00:09 Created | via API.
+2024-06-28 07:17 Signed | Kristi G. Bache
+Completed with: Norwegian BankID by Kristi C G Bache, 1972-03-23. IP: 77.88.112.225
+
+===== page 27 of 31 =====
+Events
+2024-06-28 08:35 Signed | Eirik Andreassen
+Completed with: Norwegian BankID by Eirik Gunnar Andreassen, 1965-11-08. IP:
+80.203.127.41
+2024-06-28 11:43 Signed | Lene Mostue
+Completed with: Norwegian BankID by Lene Mostue, 1970-02-09. IP: 46.212.55.140
+2024-06-28 13:48 Signed | Knut H. Johansen
+Completed with: Norwegian BankID by Knut Harry Helland Johansen, 1958-04-04. IP:
+193.214.53.178
+2024-06-28 13:49 Signed | Tina L. Selbæk
+Completed with: Norwegian BankID by Tina Lihaug Selbæk, 1973-11-05. IP: 185.193.95.56
+2024-06-28 13:55 Signed | Inge Bilet
+Completed with: Norwegian BankID by Inge Michael Bilet, 1975-08-05. IP: 193.214.53.178
+2024-06-28 14:24 Signed | Ole Andreas Schårer
+Completed with: Norwegian BankID by Ole Andreas Schårer, 1950-03-21. IP: 193.214.53.178
+2024-06-28 14:25 Signed | Tomas Nordlander
+Completed with: Norwegian BankID by Eric Tomas Nordlander, 1971-01-20. IP: 77.16.43.27
+Verification Issued by Egreement AB
+This verification confirms the contracting parties of the above agreement and contains relevant information to verify the identity of the
+contracting parties as well as relevant events in relation to the signing procedure. To this agreement are separate data files attached,
+containing additional information of technical character to attest the authenticity and validity of the documents and of the signatures (to
+access the files, please use a PDF reader able to show attachments). Hash is a fingerprint given to each individual document to verify its
+identity. Før møre information, please refer to the documentation attached.
+Verification, version: 1.19
+
+===== page 28 of 31 =====
+Statsautoriserte revisorer Foretaksregisteret: NO 976 389 387 MVA
+Ernst & Young AS Tlf: +47 24 00 24 00
+
+Building a better Nygata 4, 1607 Fredrikstad www.ey.no
+
+working world Medlemmer av Den norske Revisorforening
+
+UAVHENGIG REVISORS BERETNING
+
+Til generalforsamlingen i Smart Innovation Holding AS
+
+Konklusjon
+
+Vi har revidert årsregnskapet for Smart Innovation Holding AS som består av selskapsregnskapet og
+
+konsernregnskapet. Selskapsregnskapet og konsernregnskapet består av balanse per 31. desember
+
+2023, resultatregnskap og kontantstrømoppstilling for regnskapsåret avsluttet per denne datoen og noter
+
+til årsregnskapet, herunder et sammendrag av viktige regnskapsprinsipper.
+
+Etter vår mening oppfyller årsregnskapet gjeldende lovkrav og gir et rettvisende bilde av selskapets og
+
+konsernets finansielle stilling per 31. desember 2023 og av deres resultater og kontantstrømmer for
+
+regnskapsåret avsluttet per denne datoen i samsvar med regnskapslovens regler og god regnskapsskikk
+
+i Norge. a
+E
+
+Grunnlag for konklusjon å
+[aa]
+
+Vi har gjennomført revisjonen i samsvar med International Standards on Auditing (ISA-ene). Våre 5
+
+oppgaver og plikter i henhold til disse standardene er beskrevet nedenfor under Revisors oppgaver og e]
+
+plikter ved revisjonen av årsregnskapet. Vi er uavhengige av selskapet og konsernet i samsvar med Z
+
+kravene i relevante lover og forskrifter i Norge og International Code of Ethics for Professional G
+
+Accountants (inkludert internasjonale uavhengighetsstandarder) utstedt av International Ethics Standards 2
+
+Board for Accountants (IESBA-reglene), og vi har overholdt våre øvrige etiske forpliktelser i samsvar med 5
+
+disse kravene. Innhentet revisjonsbevis er etter vår vurdering tilstrekkelig og hensiktsmessig som 3
+
+grunnlag for vår konklusjon. X
+I
+
+Øvrig informasjon Ko
+and
+
+Øvrig informasjon omfatter informasjon i selskapets årsrapport bortsett fra årsregnskapet og den 5
+
+tilhørende revisjonsberetningen. Styret og daglig leder (ledelsen) er ansvarlig for den øvrige 3
+
+informasjonen. Vår konklusjon om revisjonen av årsregnskapet dekker ikke den øvrige informasjonen, og g
+
+vi attesterer ikke den øvrige informasjonen. EG
+
+I forbindelse med revisjonen av årsregnskapet er det vår oppgave å lese den øvrige informasjonen med
+
+det formål å vurdere om årsberetningen inneholder de opplysninger som skal gis i henhold til gjeldende
+
+lovkrav og hvorvidt det foreligger vesentlig inkonsistens mellom den øvrige informasjonen og
+
+årsregnskapet eller kunnskap vi har opparbeidet oss under revisjonen, eller hvorvidt den tilsynelatende
+
+inneholder vesentlig feilinformasjon. Dersom vi konkluderer med at den øvrige informasjonen inneholder
+
+vesentlig feilinformasjon eller ikke inneholder de opplysninger som skal gis i henhold til gjeldende lovkrav,
+
+er vi pålagt å rapportere det.
+
+Vi har ingenting å rapportere i så henseende, og vi mener at årsberetningen er konsistent med
+
+årsregnskapet og inneholder de opplysninger som skal gis i henhold til gjeldende lovkrav.
+
+Ledelsens ansvar for årsregnskapet
+
+Ledelsen er ansvarlig for å utarbeide årsregnskapet og for at det gir et rettvisende bilde i samsvar med
+
+regnskapslovens regler og god regnskapsskikk i Norge. Ledelsen er også ansvarlig for slik intern kontroll
+
+som den finner nødvendig for å kunne utarbeide et årsregnskap som ikke inneholder vesentlig
+
+feilinformasjon, verken som følge av misligheter eller feil.
+
+Ved utarbeidelsen av årsregnskapet må ledelsen ta standpunkt til selskapets og konsernets evne til
+
+fortsatt drift og opplyse om forhold av betydning for fortsatt drift. Forutsetningen om fortsatt drift skal
+
+Å member firm of Ernst & Young Global Limited
+
+===== page 29 of 31 =====
+2
+Building a better
+working world
+legges til grunn for årsregnskapet med mindre ledelsen enten har til hensikt å avvikle selskapet,
+konsernet eller virksomheten, eller ikke har noe annet realistisk alternativ.
+Revisors oppgaver og plikter ved revisjonen av årsregnskapet
+Vårt mål er å oppnå betryggende sikkerhet for at årsregnskapet som helhet ikke inneholder vesentlig
+feilinformasjon, verken som følge av misligheter eller feil, og å avgi en revisjonsberetning som inneholder
+vår konklusjon. Betryggende sikkerhet er en høy grad av sikkerhet, men ingen garanti for at en revisjon
+utført i samsvar med ISA-ene, alltid vil avdekke vesentlig feilinformasjon. Feilinformasjon kan skyldes
+misligheter eller feil og er å anse som vesentlig dersom den enkeltvis eller samlet med rimelighet kan
+forventes å påvirke de økonomiske beslutningene som brukerne foretar på grunnlag av årsregnskapet.
+Som del av en revisjon i samsvar med ISA-ene, utøver vi profesjonelt skjønn og utviser profesjonell
+skepsis gjennom hele revisjonen. I tillegg:
+e identifiserer og vurderer vi risikoen for vesentlig feilinformasjon i årsregnskapet, enten det skyldes
+misligheter eller feil. Vi utformer og gjennomfører revisjonshandlinger for å håndtere slike risikoer, Q
+og innhenter revisjonsbevis som er tilstrekkelig og hensiktsmessig som grunnlag for vår 2
+konklusjon. Risikoen for at vesentlig feilinformasjon som følge av misligheter ikke blir avdekket, er =
+høyere enn for feilinformasjon som skyldes feil, siden misligheter kan innebære samarbeid, S
+forfalskning, bevisste utelatelser, uriktige fremstillinger eller overstyring av intern kontroll. N
+e opparbeider vi oss en forståelse av den interne kontrollen som er relevant for revisjonen, for å 8
+utforme revisjonshandlinger som er hensiktsmessige etter omstendighetene, men ikke for å gi Z
+uttrykk for en mening om effektiviteten av selskapets og konsernets interne kontroll. ES
+e evaluerer vi om de anvendte regnskapsprinsippene er hensiktsmessige og om &
+regnskapsestimatene og tilhørende noteopplysninger utarbeidet av ledelsen er rimelige. E
+e konkluderer vi på om ledelsens bruk av fortsatt drift-forutsetningen er hensiktsmessig, og, basert &
+på innhentede revisjonsbevis, hvorvidt det foreligger vesentlig usikkerhet knyttet til hendelser 3
+eller forhold som kan skape betydelig tvil om selskapets og konsernets evne til fortsatt drift. EG
+Dersom vi konkluderer med at det eksisterer vesentlig usikkerhet, kreves det at vi i =
+revisjonsberetningen henleder oppmerksomheten på tilleggsopplysningene i årsregnskapet, eller, g
+dersom slike tilleggsopplysninger ikke er tilstrekkelige, at vi modifiserer vår konklusjon. Våre 3
+konklusjoner er basert på revisjonsbevis innhentet frem til datoen for revisjonsberetningen. 9
+Etterfølgende hendelser eller forhold kan imidlertid medføre at selskapet og konsernet ikke kan E
+fortsette driften. &
+e evaluerer vi den samlede presentasjonen, strukturen og innholdet i årsregnskapet, inkludert
+tileggsopplysningene, og hvorvidt årsregnskapet gir uttrykk for de underliggende transaksjonene
+og hendelsene på en måte som gir et rettvisende bilde.
+e — innhenter vi tilstrekkelig og hensiktsmessig revisjonsbevis vedrørende den finansielle
+informasjonen til enhetene eller forretningsområdene i konsernet for å kunne gi uttrykk for en
+mening om konsernregnskapet. Vi er ansvarlige for å fastsette strategien for, samt å følge opp og
+gjennomføre konsernrevisjonen, og vi har et udelt ansvar for konklusjonen på revisjonen av
+konsernregnskapet.
+Vi kommuniserer med styret blant annet om det planlagte omfanget av og tidspunktet for
+revisjonsarbeidet og eventuelle vesentlige funn i revisjonen, herunder vesentlige svakheter i den interne
+kontrollen som vi avdekker gjennom revisjonen.
+Oslo, 30. juni 2024
+ERNST & YOUNG AS
+Revisjonsberetningen er signert elektronisk
+Uavhengig revisors beretning - Smart Innovation Holding AS 2023
+Å member firm of Ernst & Young Global Limited
+
+===== page 30 of 31 =====
+3
+
+Building a better
+
+working world
+
+Jon-Michael Grefsrød
+
+statsautorisert revisor
+Q
+5
+hel
+9
+Q
+8
+=
+9
+3
+ke)
+m
+=
+Eå
+E
+E
+Lu
+9
+X
+m
+3
+N
+E
+U
+&
+3
+ke)
+Q
+D
+Q
+Uv
+ang
+ang
+pr)
+aa
+
+Uavhengig revisors beretning - Smart Innovation Holding AS 2023
+
+Å member firm of Ernst & Young Global Limited
+
+===== page 31 of 31 =====
+Signaturene i dette dokumentet er juridisk bindende. Dokument signert med "Penneo" - sikker digital
+signatur". De signerende parter sin identitet er registrert, og er listet nedenfor.
+"Med min signatur bekrefter jeg alle datoer og innholdet i dette dokument."
+Grefsrød, Jon-Michael
+Statsautorisert revisor
+På vegne av: Ernst & Young AS
+Serienummer. no bankid:9578-5992-4-3016511
+IP: 147.161. XXXXXX
+2024-06-30 20:02:20 UTC 253 bankID V
+S
+DS
+o
+Q
+å
+=
+ng
+x
+el
+9
+m
+?
+Å
+5
+E
+hon
+3
+X
+m
+3
+gr
+E
+S
+£
+E
+p)
+&
+3
+x
+S
+Q
+o
+pr)
+ng
+=
+ke)
+a
+Dokumentet er signert digitalt, med Penneo.com. Alle digitale signatur-data i Adobe Reader, skal du kunne se at dokumentet er sertifisert av Penneo
+dokumentet er sikret og validert av den datamaskin-utregnede hash-verdien av e-signature service <penneoØpenneo.com>. Dette garanterer at
+det opprinnelige dokument. Dokumentet er låst og tids-stemplet med et sertifikat innholdet i dokumentet ikke har blitt endret.
+fra en betrodd tredjepart. All kryptografisk bevis er integrert i denne PDF, for
+fremtidig validering (hvis nødvendig). Det er lett å kontrollere de kryptografiske beviser som er lokalisert inne i
+dokumentet, med Penneo validator - https://penneo.com/validator
+Hvordan bekrefter at dette dokumentet er orginalen?
+Dokumentet er beskyttet av ett Adobe CDS sertifikat. Når du åpner dokumentet i

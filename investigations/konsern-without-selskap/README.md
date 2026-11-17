@@ -20,8 +20,9 @@ rows were in `data-2026-10`.
 2. **The current SELSKAP row has no KONSERN partner.** `id` = current SELSKAP `id` plus 2
    returns 404 in 9 of 9 cases.
 3. **Every case was resubmitted.** Each has two or three "Godkjente årsregnskap" kunngjøringer
-   for the year, worded "mottatt et nytt komplett årsregnskap". See
-   `evidence/kunngjoringer.csv`.
+   for the year. The first is worded "mottatt komplett årsregnskap", the later ones "mottatt
+   et nytt komplett årsregnskap". Each has its own received date. See
+   `evidence/submissions.csv`.
 4. **The served PDF is the latest approved submission.** Its journalnr is the current SELSKAP
    row's. Its "Utskriftsdato" equals the date of the last kunngjøring for the year in 9 of 9
    cases. See `pdf_cover.csv`.
@@ -32,6 +33,11 @@ rows were in `data-2026-10`.
 Reading: the first submission had a selskapsregnskap and a konsernregnskap on one journalnr.
 A later submission without a konsernregnskap got a new journalnr. The list endpoint replaced
 the SELSKAP row and kept the KONSERN row of the earlier submission.
+
+6. **The kunngjøring tracks the parent status.** For 927652900 and 933896129 the first
+   submission says "registrert som morselskap i konsern" and the last says "ikke registrert
+   som morselskap i konsern". The other seven say parent throughout the case year, except the
+   first of three submissions for 925147885.
 
 ## The nine cases
 
@@ -75,24 +81,50 @@ cases. The list endpoint returns only the current one.
 
 This reverses the earlier working position in this project that `journalnr` alone is the
 identity to build on and that `id` adds nothing. `id` is the only handle that retrieves a
-superseded version. `journalnr` remains what ties a row to its submission and to the PDF.
+superseded version, and the only one that orders versions reliably. `journalnr` remains what ties a row to its submission and to the PDF.
+
+## Submissions per case year
+
+From `evidence/submissions.csv`. Received is "mottatt", announced is the kunngjøring date.
+
+| orgnr | year | received | announced | wording | parent |
+|---|---|---|---|---|---|
+| 914310415 | 2025 | 18.09.2025 | 22.09.2025 | first | ja |
+| 914310415 | 2025 | 25.07.2026 | 28.07.2026 | nytt | ja |
+| 920905994 | 2025 | 16.09.2026 | 17.09.2026 | first | ja |
+| 920905994 | 2025 | 26.09.2026 | 29.09.2026 | nytt | ja |
+| 925147885 | 2023 | 31.03.2024 | 03.04.2024 | first | nei |
+| 925147885 | 2023 | 15.04.2024 | 17.04.2024 | nytt | ja |
+| 925147885 | 2023 | 29.05.2024 | 01.06.2024 | nytt | ja |
+| 927652900 | 2023 | 29.05.2024 | 01.06.2024 | first | ja |
+| 927652900 | 2023 | 17.06.2024 | 08.07.2024 | nytt | nei |
+| 928772896 | 2023 | 15.05.2024 | 21.05.2024 | first | ja |
+| 928772896 | 2023 | 07.05.2024 | 03.06.2024 | nytt | ja |
+| 930076430 | 2023 | 04.09.2024 | 07.09.2024 | first | ja |
+| 930076430 | 2023 | 12.09.2024 | 16.09.2024 | nytt | ja |
+| 933896129 | 2024 | 11.10.2025 | 14.10.2025 | first | ja |
+| 933896129 | 2024 | 04.11.2025 | 06.11.2025 | nytt | nei |
+| 934445791 | 2024 | 01.06.2025 | 03.06.2025 | first | ja |
+| 934445791 | 2024 | 04.06.2025 | 07.06.2025 | nytt | ja |
+| 934445791 | 2024 | 13.08.2025 | 16.08.2025 | nytt | ja |
+| 938737797 | 2025 | 08.06.2026 | 01.07.2026 | first | ja |
+| 938737797 | 2025 | 08.06.2026 | 04.07.2026 | nytt | ja |
+
+**928772896.** The submission announced last was received first: 07.05.2024 against
+15.05.2024. Its journalnr 2024403828 is also the lower one. So journalnr follows the order of
+receipt, and approval can come in another order. Across all 390 resubmissions in the November
+2026 change log the new `id` is higher in 390, and the new `journalnr` is higher in 385.
 
 ## Not explained
 
-- **928772896.** The current SELSKAP journalnr 2024403828 is lower than the KONSERN journalnr
-  2024421229, while its `id` is higher and its PDF is dated on the last kunngjøring. The order
-  of journalnr and the order of approval disagree.
-- **Three kunngjøringer, two journalnr.** 925147885, 928772896 and 934445791 have three
-  kunngjøringer for the year. Only two journalnr are known. Ids between the two known ones were
-  not probed.
-- **Earlier received dates.** Every kunngjøring for the same year shows the same text, with the
-  latest received date. The received date of the first submission is not available there.
-- **934445791.** Its first kunngjøring is dated 03.06.2025. The current PDF says the accounts
-  were adopted 04.06.2025.
-- **Scope of the by-id endpoint.** It serves rows the list endpoint no longer returns. How far
-  back, and for which resubmissions, is not known. The November change log has 390
-  resubmissions that could be probed the same way.
-- **Figures inside the PDFs.** Not compared with either row. The PDFs are scanned images.
+- **Three submissions, two journalnr.** 925147885 and 934445791 have three submissions for the
+  case year. Only two journalnr and two SELSKAP ids are known for each. Which submission the
+  third belongs to, and its id, are not known.
+- **928772896 has two kunngjøring pages dated 03.06.2024.** Both show the same two submissions.
+- **938737797.** Both submissions were received 08.06.2026, on journalnr 15 apart.
+- **Scope of the by-id endpoint.** See `../by-id-reach/`.
+- **Figures inside the PDFs.** Not compared with either row. `evidence/pdf_text/` is machine
+  reading of scanned pages and has errors in numbers and tables.
 - **The KONSERN journalnr's own PDF.** The PDF endpoint takes orgnr and year only.
 
 ## Open decisions
@@ -109,23 +141,29 @@ superseded version. `journalnr` remains what ties a row to its submission and to
 |---|---|
 | `cases.csv` | The nine cases: orgnr, year, both journalnr and both ids |
 | `pdf_cover.csv` | Values read by eye from each PDF's first two pages |
-| `reproduce.py` | Refetches everything under `evidence/` |
+| `reproduce.py` | Refetches the API responses, kunngjøring pages and PDFs under `evidence/` |
+| `transcribe.py` | Writes the text versions and `submissions.csv` from what `reproduce.py` fetched |
 | `evidence/account_rows.csv` | Every row of the list response, plus four by-id probes per case |
 | `evidence/api/list/` | Raw list responses |
 | `evidence/api/by_id/` | Raw by-id responses, 404 bodies included |
-| `evidence/kunngjoringer.csv` | Accounts kunngjøringer from the case year onward |
+| `evidence/kunngjoringer.csv` | Index of accounts kunngjøringer from the case year onward |
 | `evidence/kunngjoring/` | Raw kunngjøring pages |
+| `evidence/kunngjoring_text/` | The same pages as plain text |
+| `evidence/submissions.csv` | One row per submission named in those pages: year, received, announced, wording, parent status |
 | `evidence/pdf/` | The årsregnskap PDF served for each case |
+| `evidence/pdf_text/` | Every page of each PDF as text, read by Tesseract with Norwegian language data |
 | `evidence/pages/` | Pages 1 and 2 of each PDF as PNG |
 
 ## Reproduce
 
 ```
 uv run python investigations/konsern-without-selskap/reproduce.py
+uv run python investigations/konsern-without-selskap/transcribe.py
 pdftoppm -r 50 -f 1 -l 2 -png evidence/pdf/920905994-2025.pdf evidence/pages/920905994-2025
 ```
 
-The script overwrites `evidence/`. Compare with `git diff` to see what the source changed.
+`transcribe.py` needs `pdftoppm` and `tesseract` with the `nor` language data. The scripts
+overwrite `evidence/`. Compare with `git diff` to see what the source changed.
 The PDFs are generated per request and are not byte-identical between downloads.
 
 To find the cases in a release: KONSERN rows in `accounts-*.csv` whose `journalnr` has no row

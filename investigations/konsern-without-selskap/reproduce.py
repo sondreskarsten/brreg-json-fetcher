@@ -75,20 +75,8 @@ def notices(session, case, out, pause):
             continue
         detail_path = out / "kunngjoring" / f"{orgnr}-{kid}.html"
         url = f"{NOTICES}/hent_en.jsp?kid={kid}&sokeverdi={orgnr}&spraak=nb"
-        detail = html.unescape(fetch(session, url, detail_path, pause).content.decode("latin-1"))
-        text = re.search(r"har den (\d{2}\.\d{2}\.\d{4}) mottatt (et nytt )?komplett", detail)
-        year = re.search(r"regnskaps.ret\s*(\d{4})", detail)
-        rows.append(
-            {
-                "orgnr": orgnr,
-                "kunngjort": date,
-                "kid": kid,
-                "type": kind,
-                "regnskapsaar_in_text": year.group(1) if year else "",
-                "mottatt_in_text": text.group(1) if text else "",
-                "nytt_in_text": bool(text and text.group(2)),
-            }
-        )
+        fetch(session, url, detail_path, pause)
+        rows.append({"orgnr": orgnr, "kunngjort": date, "kid": kid, "type": kind})
     return rows
 
 

@@ -27,17 +27,30 @@ left the list response between `data-2026-10` and `data-2026-11`. Each probe ret
 
 Rows are in `probes.csv`.
 
-## Other observations
+## How ids are laid out
 
-- **The orgnr must match.** A valid `id` with another organisation's orgnr returns 404.
-- **Each row answers on two consecutive ids.** For 914310415, ids 6323762 and 6323763 both
-  return the SELSKAP row on journalnr 2025756984, and 6323764 and 6323765 both return the
-  KONSERN row. The list response uses the higher id of each pair. The same holds for
-  938737797 and 920905994. Whether the two ids of a pair ever differ in content was not
-  checked beyond three totals.
+Ids around 60 random rows of `data-2026-11` were probed, from two below the listed SELSKAP id
+to three above it. Rows are in `layout.csv`.
+
+| Submission | N-1 | N, listed SELSKAP | N+1 | N+2, listed KONSERN | Rows |
+|---|---|---|---|---|---|
+| SELSKAP and KONSERN | SELSKAP copy | SELSKAP | KONSERN copy | KONSERN | 30 of 30 |
+| SELSKAP only | SELSKAP copy | SELSKAP | 404 | 404 | 28 of 30 |
+| SELSKAP only | 404 | SELSKAP | 404 | 404 | 2 of 30 |
+
+- **A copy equals its listed row** on every field except `id`, in 88 of 88 pairs.
+- **Parity carries no meaning.** Listed ids are odd for 82% of SELSKAP rows and 85% of KONSERN
+  rows in `data-2026-11`.
+- **A higher id is the newer version.** In all 390 resubmissions of the November 2026 change
+  log the new id is higher. The new journalnr is higher in 385.
+- **The orgnr must match.** A valid id with another organisation's orgnr returns 404. A 404
+  next to a row can therefore be a row of another organisation.
+- **An old version cannot be derived from the new id.** The distance between them varies.
 
 ## Not known
 
+- **Why two SELSKAP-only rows have no copy.**
+- **What the lower id of a pair is for.**
 - **How far back.** Every probed id was collected in October 2026 or later, so the oldest
   fiscal year tested is 2021. Ids for older years are not known to this project.
 - **Whether it lasts.** One day of probing says nothing about retention.
@@ -47,6 +60,7 @@ Rows are in `probes.csv`.
 
 ```
 uv run python investigations/by-id-reach/probe.py path/to/changes-2026-11.csv
+uv run python investigations/by-id-reach/layout.py path/to/data-2026-11
 ```
 
 The change log is the `changelog-2026-11` release rebuilt with version 0.7.0 or later, which
