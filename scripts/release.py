@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from brreg_fetcher.attribution import ATTRIBUTION, LICENCE_URL, REPOSITORY
+from brreg_fetcher.attribution import ATTRIBUTION, LICENCE_URL, PRODUCT, PRODUCT_EN, REPOSITORY
 from brreg_fetcher.changelog import SCHEMA, build_changelog
 from brreg_fetcher.export import restore_asset, restore_checkpoint, sha256_file
 from brreg_fetcher.state import State
@@ -241,7 +241,7 @@ def publish(repo, directory, tag, target):
     notes = directory.parent / "release-notes.md"
     kind = "recovery checkpoint" if checkpoint else "change log" if changelog else "monthly data"
     notes.write_text(
-        f"regnskapsregisteret-dataset {kind}: {cycle}. Unofficial mirror of Regnskapsregisteret key figures.\n\n"
+        f"{PRODUCT} ({PRODUCT_EN}), {kind}: {cycle}. Unofficial mirror of Regnskapsregisteret key figures.\n\n"
         f"{ATTRIBUTION} [NLOD 2.0]({LICENCE_URL}).\n\n"
         "Independent mirror by sondreskarsten; not operated or endorsed by Brønnøysundregistrene. "
         "Monthly selection and CSV conversion are changes made by this mirror. "
@@ -267,7 +267,9 @@ def publish(repo, directory, tag, target):
         )
         + "Verify SHA256SUMS. Large files use ordered parts described by manifest.json.\n"
     )
-    title = f"regnskapsregisteret-dataset {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}"
+    title = (
+        f"{PRODUCT} {'checkpoint' if checkpoint else 'changelog' if changelog else 'data'} {cycle}"
+    )
     pages = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases"))
     existing = next((r for page in pages for r in page if r["tag_name"] == tag), None)
     if existing and not existing["draft"]:
