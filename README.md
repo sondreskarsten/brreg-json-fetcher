@@ -80,7 +80,7 @@ Last ned én del, for eksempel `accounts-00003.csv`, og åpne den direkte. Filen
 
 ### R
 
-[`examples/enrich.R`](examples/enrich.R) henter regnskapstallene for en liste med organisasjonsnumre fra en utgivelse.
+[`examples/enrich.R`](examples/enrich.R) henter regnskapstallene for en liste med organisasjonsnumre fra en utgivelse. Funksjonen `regnskap_for_orgnr()` finner nyeste utgivelse selv og returnerer en tibble med én rad per organisasjon, regnskapstype og år. Den laster ned alle regnskapsdelene, 2,58 GB for `data-2026-11`, og leser bare kolonnene den trenger. Den krever R 4.4 eller nyere og pakkene dplyr, data.table og jsonlite.
 
 ### Kommandolinje
 
@@ -153,7 +153,7 @@ Every release also has `manifest.json`, `SHA256SUMS` and `DATA_NOTICE.md`. The m
 
 ### Getting started
 
-Join the accounts to the organisation table on `_meta.orgnr` = `orgnr`. Select columns by name. A blank cell means not reported, not zero. In Excel, open one accounts part directly. In R, [`examples/enrich.R`](examples/enrich.R) fetches the accounts for a list of organisation numbers from a release. On the command line, use the script under [Kommandolinje](#kommandolinje). It works for `data-2026-11` and later releases.
+Join the accounts to the organisation table on `_meta.orgnr` = `orgnr`. Select columns by name. A blank cell means not reported, not zero. In Excel, open one accounts part directly. In R, [`examples/enrich.R`](examples/enrich.R) fetches the accounts for a list of organisation numbers from a release. It downloads every accounts part, 2.58 GB for `data-2026-11`, and needs R 4.4 or later with dplyr, data.table and jsonlite. On the command line, use the script under [Kommandolinje](#kommandolinje). It works for `data-2026-11` and later releases.
 
 ### Licence and citation
 
