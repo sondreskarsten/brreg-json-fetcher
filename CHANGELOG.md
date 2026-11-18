@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+- The dataset is presented as **Norske årsregnskap** (Norwegian annual accounts). Release titles, release notes and `DATA_NOTICE.md` use the name. The repository address is unchanged.
+- README rewritten: download first, Norwegian with an English section, file names documented per release. The download script works for releases with `observations.csv` and with `organisations.csv`. The detailed column and change-log reference moves to `docs/DATA.md`.
+- Add `examples/enrich.R`: fetch the accounts for a list of organisation numbers from a release in R.
+
 ## 0.9.0
 
 Change log layout v2. `changelog-2026-12` and later differ from `changelog-2026-11`:

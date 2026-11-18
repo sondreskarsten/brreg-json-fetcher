@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: regnskapsregisteret-dataset
+title: "Norske årsregnskap (Norwegian annual accounts)"
 message: Cite the immutable release tag you used, for example data-2026-11.
 type: dataset
 authors:
@@ -8,8 +8,8 @@ url: https://github.com/sondreskarsten/regnskapsregisteret-dataset/releases
 repository-code: https://github.com/sondreskarsten/regnskapsregisteret-dataset
 abstract: >-
   Unofficial monthly mirror of the annual-accounts key figures published by
-  Regnskapsregisteret, with register population tables and a month-over-month
-  change log. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0
+  Regnskapsregisteret, with a per-organisation register table and a
+  month-over-month change log. Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0
   tilgjengeliggjort av Brønnøysundregistrene.
 license-url: https://data.norge.no/nlod/no/2.0
 keywords:

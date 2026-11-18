@@ -1,5 +1,7 @@
 """Source-data attribution, separate from any licence for this collector's code."""
 
+PRODUCT = "Norske årsregnskap"
+PRODUCT_EN = "Norwegian annual accounts"
 REPOSITORY = "https://github.com/sondreskarsten/regnskapsregisteret-dataset"
 LICENCE_URL = "https://data.norge.no/nlod/no/2.0"
 ACCOUNTS_CATALOG = (
@@ -10,9 +12,9 @@ ATTRIBUTION = (
     "Inneholder data under Norsk lisens for offentlige data (NLOD) 2.0 "
     "tilgjengeliggjort av Brønnøysundregistrene."
 )
-NOTICE = f"""# regnskapsregisteret-dataset: unofficial BRREG data mirror / uoffisielt dataspeil
+NOTICE = f"""# {PRODUCT} ({PRODUCT_EN}): uoffisielt dataspeil / unofficial data mirror
 
-regnskapsregisteret-dataset ({REPOSITORY}) is an independent mirror maintained by sondreskarsten.
+{PRODUCT} ({REPOSITORY}) is an independent mirror maintained by sondreskarsten.
 It is not operated, approved or endorsed by Brønnøysundregistrene.
 Brønnøysundregistrene is the source provider, not the author of this mirror.
 
